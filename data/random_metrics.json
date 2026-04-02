@@ -1,0 +1,8 @@
+{
+    "strategy": "random",
+    "total_steps": 499,
+    "coverage_rate": 0.05,
+    "remaining_dirt_ratio": 0.92,
+    "runtime_seconds": 30.92,
+    "stopped_by_max_steps": true
+}

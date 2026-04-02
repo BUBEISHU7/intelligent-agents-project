@@ -342,4 +342,4 @@ def main():
     moveIt(canvas,agents,passiveObjects)
     window.mainloop()
 
-main()
+# main()
