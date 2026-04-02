@@ -44,7 +44,7 @@ pip install numpy matplotlib
 ### **1.Clone the repository** (if you haven't already):
 
 ```bash 
-git clone https://github.com/BUBEISHU7/intelligent-agents-project.git
+git clone https://github.com/你的用户名/intelligent-agents-project.git
 cd intelligent-agents-project
 ```
 
