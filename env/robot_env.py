@@ -51,6 +51,18 @@ class RobotEnvironment:
         self.cleaned_cells = set()
         self.cell_size = 20          # grid cell size for coverage estimation
         self._prev_coverage = 0.0    # previous coverage to compute reward
+        self._reset_metrics()
+
+    def _reset_metrics(self):
+            """初始化或重置实验数据计数器"""
+            self.total_steps = 0  # 时间（步数）
+            self.total_distance = 0.0  # 路径长度
+            self.collision_count = 0  # 碰撞次数
+            self.bot_collision_state = [False for _ in self.agents]# 碰撞状态追踪，防止同一次碰撞重复计数
+            # 记录每个机器人的上一个位置，用于计算位移
+            self.prev_bot_pos = []
+            for bot in self.agents:
+                self.prev_bot_pos.append((bot.x, bot.y))
 
     def _create_objects(self):
         """Create robots, chargers, WiFi hubs,obstacles and dirt."""
@@ -124,6 +136,7 @@ class RobotEnvironment:
         self._create_objects()
         self.cleaned_cells = set()
         self._prev_coverage = 0.0
+        self._reset_metrics()
         return self._get_observation()
 
     def step(self, actions):
@@ -133,30 +146,84 @@ class RobotEnvironment:
         :param actions: Ignored here; robots use their internal brains.
         :return: (observation, reward, done, info)
         """
+        if not hasattr(self, 'total_steps'):
+            self._reset_metrics()  # 如果还没初始化指标，先初始化
+
+        self.total_steps += 1
         # Let each robot decide and act
-        for rr in self.agents:
+        for i, rr in enumerate(self.agents):
+            # 记录移动前的位置
+            old_x, old_y = rr.x, rr.y
             rr.thinkAndAct(self.agents, self.passive_objects)
             rr.update(self.canvas, self.passive_objects, 1.0)
             self.passive_objects = rr.collectDirt(self.canvas, self.passive_objects)
+            # 计算位移
+            step_dist = math.sqrt((rr.x - old_x) ** 2 + (rr.y - old_y) ** 2)
+            self.total_distance += step_dist
 
+            # 只有从“未碰撞”变为“碰撞”时才计数一次
+            colliding_now = False
+            for obj in self.passive_objects:
+                if isinstance(obj, Obstacle):
+                    dist_to_obs = math.sqrt((rr.x - obj.centreX) ** 2 + (rr.y - obj.centreY) ** 2)
+                    if dist_to_obs < 30:
+                        colliding_now = True
+                        # 物理反弹处理（保持现状）
+                        rr.x, rr.y = old_x, old_y
+                        rr.theta += random.uniform(math.pi / 2, math.pi)
+                        break
+
+            if colliding_now and not self.bot_collision_state[i]:
+                self.collision_count += 1
+            self.bot_collision_state[i] = colliding_now
         # Update canvas
         self.canvas.update()
-        self.canvas.after(50)   # slow down for visibility
+        self.canvas.after(50)
+        # 获取最新的指标并计算 reward
+        metrics = self.get_metrics()
+        reward = metrics['coverage'] - self._prev_coverage
+        self._prev_coverage = metrics['coverage']
 
-        # Compute coverage and reward
-        coverage = self._compute_coverage()
-        reward = coverage - self._prev_coverage
-        self._prev_coverage = coverage
+        done = metrics['success'] or (self.total_steps >= 2000)
 
-        # Check if all dirt is collected
+        return self._get_observation(), reward, done, metrics
+
+        #统一的实验结果输出接口
+
+    def get_metrics(self):
+        """获取标准化的性能度量字典"""
         remaining_dirt = len([d for d in self.passive_objects if isinstance(d, Dirt)])
-        done = (remaining_dirt == 0)
+        coverage = self._compute_coverage()
+        success = (remaining_dirt == 0)
 
-        info = {
-            'coverage': coverage,
-            'remaining_dirt': remaining_dirt
+        # 路径效率：单位位移带来的覆盖收益 (乘1000使数值易读)
+        path_efficiency = 1000 * coverage / (self.total_distance + 1e-6)
+
+        return {
+            "success": int(success),
+            "coverage": round(coverage, 4),
+            "steps": self.total_steps,
+            "collisions": self.collision_count,
+            "total_distance": round(self.total_distance, 2),
+            "path_efficiency": round(path_efficiency, 4),
+            "remaining_dirt": remaining_dirt,
+            "performance_score": self.compute_performance_score(coverage, success)
         }
-        return self._get_observation(), reward, done, info
+
+        # 综合性能分数计算
+
+    def compute_performance_score(self, coverage, success):
+        """计算综合分数用于鲁棒性对比"""
+        success_bonus = 1.0 if success else 0.0
+        # 权重分配：覆盖率(100) + 完成奖励(20) - 步数惩罚 - 碰撞惩罚 - 位移惩罚
+        score = (
+                100 * coverage
+                + 20 * success_bonus
+                - 0.01 * self.total_steps
+                - 2.0 * self.collision_count
+                - 0.001 * self.total_distance
+        )
+        return round(score, 3)
 
     def _get_observation(self):
         """
