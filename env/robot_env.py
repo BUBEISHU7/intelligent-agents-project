@@ -7,7 +7,8 @@ import math
 import numpy as np
 
 # Import required classes from simpleBot2 (relative import from current package)
-from .simpleBot2 import Bot, Brain, Lamp, Charger, WiFiHub, Dirt
+
+from .simpleBot2 import Bot, Brain, Lamp, Charger, WiFiHub, Dirt, Obstacle
 
 class RobotEnvironment:
     """Robot environment that encapsulates the simulation and provides a standard interface."""
@@ -52,7 +53,10 @@ class RobotEnvironment:
         self._prev_coverage = 0.0    # previous coverage to compute reward
 
     def _create_objects(self):
-        """Create robots, chargers, WiFi hubs, and dirt."""
+        """Create robots, chargers, WiFi hubs,obstacles and dirt."""
+
+
+
         # Create robots
         for i in range(self.num_bots):
             bot = Bot(f"Bot{i}")
@@ -80,6 +84,27 @@ class RobotEnvironment:
             dirt = Dirt(f"Dirt{i}")
             self.passive_objects.append(dirt)
             dirt.draw(self.canvas)
+
+            # ========== 新增：创建随机障碍物 ==========
+        import random
+        num_obstacles = 5  # 可以改成参数
+        for i in range(num_obstacles):
+            # 避免障碍物重叠在充电桩和WiFi位置上
+            while True:
+                ox = random.randint(50, 950)
+                oy = random.randint(50, 950)
+                # 检查是否与充电桩重叠
+                charger_pos = (self.passive_objects[0].centreX, self.passive_objects[0].centreY)
+                hub1_pos = (950, 50)
+                hub2_pos = (50, 500)
+                if (abs(ox - charger_pos[0]) > 50 and abs(oy - charger_pos[1]) > 50 and
+                        abs(ox - hub1_pos[0]) > 50 and abs(oy - hub1_pos[1]) > 50 and
+                        abs(ox - hub2_pos[0]) > 50 and abs(oy - hub2_pos[1]) > 50):
+                    break
+            obstacle = Obstacle(f"Obstacle{i}", ox, oy)
+            self.passive_objects.append(obstacle)
+            obstacle.draw(self.canvas)
+
 
     def _on_click(self, event):
         """Teleport all robots to the clicked position (for debugging)."""
