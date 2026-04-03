@@ -72,6 +72,14 @@ for _ in range(500):
 env.close()
 ```
 
+### 4. Run member C week1 coordination experiment:
+
+```bash
+python experiments/member_c_week1_coordination.py
+```
+
+Outputs are saved in `data/member_c_week1/` (CSV + JSON summaries and trajectories).
+
 ## Project Structure
 
 text

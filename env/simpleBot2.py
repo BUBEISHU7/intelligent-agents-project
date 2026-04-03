@@ -258,7 +258,7 @@ class Bot():
     # handles the physics of the movement
     # cf. Dudek and Jenkin, Computational Principles of Mobile Robotics
     def move(self,canvas,dt):
-        print(self.battery)
+        # Battery value is drawn on the canvas already; avoid printing every step.
         if self.battery==0:
             self.sl = 0
             self.sl = 0
