@@ -3,22 +3,104 @@ import random
 import math
 import numpy as np
 
+
 class Brain():
 
-    def __init__(self,botp):
+    def __init__(self, botp):
         self.bot = botp
         self.turningCount = 0
-        self.movingCount = random.randrange(50,100)
+        self.movingCount = random.randrange(50, 100)
         self.currentlyTurning = False
-        #self
+        # ========== 避障相关变量 ==========
+        self.avoiding_obstacle = False  # 是否正在避障
+        self.obstacle_turn_direction = 1  # 转弯方向（1=左转，-1=右转）
+        self.obstacle_turn_steps = 0  # 还需要转多少步
+        # self
 
-    # modify this to change the robot's behaviour
     def thinkAndAct(self, lightL, lightR, chargerL, chargerR, x, y, sl, sr, battery):
         newX = None
         newY = None
-        
-        # wandering behaviour
-        if self.currentlyTurning==True:
+
+        # ========== 1. 避让墙壁（最高优先级） ==========
+        WALL_DISTANCE = 50
+        CANVAS_SIZE = 1000
+
+        touching_left = (x < WALL_DISTANCE)
+        touching_right = (x > CANVAS_SIZE - WALL_DISTANCE)
+        touching_top = (y < WALL_DISTANCE)
+        touching_bottom = (y > CANVAS_SIZE - WALL_DISTANCE)
+
+        if touching_left or touching_right or touching_top or touching_bottom:
+            # 重置避障状态
+            self.avoiding_obstacle = False
+            self.obstacle_turn_steps = 0
+
+            if touching_left:
+                speedLeft = 8.0
+                speedRight = -8.0
+            elif touching_right:
+                speedLeft = -8.0
+                speedRight = 8.0
+            elif touching_top:
+                speedLeft = 8.0
+                speedRight = -8.0
+            else:  # touching_bottom
+                speedLeft = -8.0
+                speedRight = 8.0
+
+            if x < WALL_DISTANCE:
+                newX = WALL_DISTANCE
+            if x > CANVAS_SIZE - WALL_DISTANCE:
+                newX = CANVAS_SIZE - WALL_DISTANCE
+            if y < WALL_DISTANCE:
+                newY = WALL_DISTANCE
+            if y > CANVAS_SIZE - WALL_DISTANCE:
+                newY = CANVAS_SIZE - WALL_DISTANCE
+
+            return speedLeft, speedRight, newX, newY
+
+        # ========== 2. 避让障碍物（第二优先级） ==========
+        OBSTACLE_THRESHOLD = 150  # 信号强度阈值（降低一点，更敏感）
+
+        # 检测是否靠近障碍物
+        near_obstacle = (chargerL + chargerR > OBSTACLE_THRESHOLD)
+
+        if near_obstacle:
+            # 如果还没开始避障，初始化避障状态
+            if not self.avoiding_obstacle:
+                self.avoiding_obstacle = True
+                # 根据信号强度决定转弯方向
+                if chargerR > chargerL:
+                    # 右边信号强，障碍物在右边，向左转
+                    self.obstacle_turn_direction = 1  # 左转
+                else:
+                    # 左边信号强，障碍物在左边，向右转
+                    self.obstacle_turn_direction = -1  # 右转
+                # 设置转弯步数（30-50步，确保离开障碍物）
+                self.obstacle_turn_steps = random.randrange(30, 50)
+
+            # 执行避障转弯（连续转弯多步）
+            if self.obstacle_turn_direction == 1:  # 左转
+                speedLeft = -6.0
+                speedRight = 6.0
+            else:  # 右转
+                speedLeft = 6.0
+                speedRight = -6.0
+
+            # 减少剩余步数
+            self.obstacle_turn_steps -= 1
+
+            # 转弯完成，退出避障模式
+            if self.obstacle_turn_steps <= 0:
+                self.avoiding_obstacle = False
+
+            return speedLeft, speedRight, newX, newY
+
+        # ========== 没有靠近障碍物时，重置避障状态 ==========
+        self.avoiding_obstacle = False
+
+        # ========== 3. 原有代码：随机游走 ==========
+        if self.currentlyTurning == True:
             speedLeft = -2.0
             speedRight = 2.0
             self.turningCount -= 1
@@ -26,40 +108,31 @@ class Brain():
             speedLeft = 5.0
             speedRight = 5.0
             self.movingCount -= 1
-        if self.movingCount==0 and not self.currentlyTurning:
-            self.turningCount = random.randrange(20,40)
+        if self.movingCount == 0 and not self.currentlyTurning:
+            self.turningCount = random.randrange(20, 40)
             self.currentlyTurning = True
-        if self.turningCount==0 and self.currentlyTurning:
-            self.movingCount = random.randrange(50,100)
+        if self.turningCount == 0 and self.currentlyTurning:
+            self.movingCount = random.randrange(50, 100)
             self.currentlyTurning = False
 
-        #battery - these are later so they have priority
-        if battery<600:
-            if chargerR>chargerL:
+        # ========== 4. 低电量找充电桩 ==========
+        if battery < 600:
+            if chargerR > chargerL:
                 speedLeft = 2.0
                 speedRight = -2.0
-            elif chargerR<chargerL:
+            elif chargerR < chargerL:
                 speedLeft = -2.0
                 speedRight = 2.0
-            if abs(chargerR-chargerL)<chargerL*0.1: #approximately the same
+            if abs(chargerR - chargerL) < chargerL * 0.1:
                 speedLeft = 5.0
                 speedRight = 5.0
-        if chargerL+chargerR>200 and battery<1000:
+
+        # ========== 5. 靠近充电桩时充电 ==========
+        if chargerL + chargerR > 200 and battery < 1000:
             speedLeft = 0.0
             speedRight = 0.0
 
-        #toroidal geometry
-        if x>1000:
-            newX = 0
-        if x<0:
-            newX = 1000
-        if y>1000:
-            newY = 0
-        if y<0:
-            newY = 1000
-
         return speedLeft, speedRight, newX, newY
-
 class Bot():
 
     def __init__(self,namep):
@@ -106,14 +179,15 @@ class Bot():
         chargerL = 0.0
         chargerR = 0.0
         for pp in passiveObjects:
-            if isinstance(pp,Charger):
-                lx,ly = pp.getLocation()
-                distanceL = math.sqrt( (lx-self.sensorPositions[0])*(lx-self.sensorPositions[0]) + \
-                                       (ly-self.sensorPositions[1])*(ly-self.sensorPositions[1]) )
-                distanceR = math.sqrt( (lx-self.sensorPositions[2])*(lx-self.sensorPositions[2]) + \
-                                       (ly-self.sensorPositions[3])*(ly-self.sensorPositions[3]) )
-                chargerL += 200000/(distanceL*distanceL)
-                chargerR += 200000/(distanceR*distanceR)
+            # 检测充电桩和障碍物（都需要避开）
+            if isinstance(pp, Charger) or isinstance(pp, Obstacle):
+                lx, ly = pp.getLocation()
+                distanceL = math.sqrt((lx - self.sensorPositions[0]) * (lx - self.sensorPositions[0]) +
+                                      (ly - self.sensorPositions[1]) * (ly - self.sensorPositions[1]))
+                distanceR = math.sqrt((lx - self.sensorPositions[2]) * (lx - self.sensorPositions[2]) +
+                                      (ly - self.sensorPositions[3]) * (ly - self.sensorPositions[3]))
+                chargerL += 200000 / (distanceL * distanceL)
+                chargerR += 200000 / (distanceR * distanceR)
         return chargerL, chargerR
 
     def distanceTo(self,obj):
@@ -283,6 +357,41 @@ class Dirt:
         return self.centreX, self.centreY
 
 
+class Obstacle:
+    """障碍物类 - 机器人需要避让的物体（可被充电传感器检测）"""
+
+    def __init__(self, namep, xp=None, yp=None):
+        if xp is None:
+            self.centreX = random.randint(50, 950)
+        else:
+            self.centreX = xp
+        if yp is None:
+            self.centreY = random.randint(50, 950)
+        else:
+            self.centreY = yp
+        self.name = namep
+        self.radius = 15
+
+    def draw(self, canvas):
+        body = canvas.create_oval(self.centreX - self.radius,
+                                  self.centreY - self.radius,
+                                  self.centreX + self.radius,
+                                  self.centreY + self.radius,
+                                  fill="brown", tags=self.name)
+        canvas.create_line(self.centreX - 8, self.centreY - 8,
+                           self.centreX + 8, self.centreY + 8,
+                           fill="white", width=2, tags=self.name)
+        canvas.create_line(self.centreX - 8, self.centreY + 8,
+                           self.centreX + 8, self.centreY - 8,
+                           fill="white", width=2, tags=self.name)
+
+    def getLocation(self):
+        return self.centreX, self.centreY
+
+    def getRadius(self):
+        return self.radius
+
+
 def initialise(window):
     window.resizable(False,False)
     canvas = tk.Canvas(window,width=1000,height=1000)
@@ -295,37 +404,51 @@ def buttonClicked(x,y,agents):
             rr.x = x
             rr.y = y
 
-def createObjects(canvas,noOfBots=1,noOfLights=2,amountOfDirt=300):
+
+def createObjects(canvas, noOfBots=1, noOfLights=2, amountOfDirt=300, noOfObstacles=5):
     agents = []
     passiveObjects = []
-    for i in range(0,noOfBots):
-        bot = Bot("Bot"+str(i))
+
+    # 创建机器人
+    for i in range(0, noOfBots):
+        bot = Bot("Bot" + str(i))
         brain = Brain(bot)
         bot.setBrain(brain)
         agents.append(bot)
         bot.draw(canvas)
 
-    for i in range(0,noOfLights):
-        lamp = Lamp("Lamp"+str(i))
+    # 创建光源
+    for i in range(0, noOfLights):
+        lamp = Lamp("Lamp" + str(i))
         passiveObjects.append(lamp)
         lamp.draw(canvas)
 
-    charger = Charger("Charger"+str(i))
+    # 创建充电桩
+    charger = Charger("Charger")
     passiveObjects.append(charger)
     charger.draw(canvas)
-    
-    hub1 = WiFiHub("Hub1",950,50)
+
+    # 创建WiFi热点
+    hub1 = WiFiHub("Hub1", 950, 50)
     passiveObjects.append(hub1)
     hub1.draw(canvas)
-    hub2 = WiFiHub("Hub2",50,500)
+    hub2 = WiFiHub("Hub2", 50, 500)
     passiveObjects.append(hub2)
     hub2.draw(canvas)
 
-    for i in range(0,amountOfDirt):
-        dirt = Dirt("Dirt"+str(i))
+    # ========== 新增：创建随机障碍物 ==========
+    for i in range(0, noOfObstacles):
+        obstacle = Obstacle("Obstacle" + str(i))
+        passiveObjects.append(obstacle)
+        obstacle.draw(canvas)
+
+    # 创建灰尘
+    for i in range(0, amountOfDirt):
+        dirt = Dirt("Dirt" + str(i))
         passiveObjects.append(dirt)
         dirt.draw(canvas)
-    canvas.bind( "<Button-1>", lambda event: buttonClicked(event.x,event.y,agents) )
+
+    canvas.bind("<Button-1>", lambda event: buttonClicked(event.x, event.y, agents))
     return agents, passiveObjects
 
 def moveIt(canvas,agents,passiveObjects):
@@ -342,4 +465,4 @@ def main():
     moveIt(canvas,agents,passiveObjects)
     window.mainloop()
 
-main()
+# main()

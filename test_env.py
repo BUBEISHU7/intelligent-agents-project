@@ -11,14 +11,24 @@ def main():
     obs = env.reset()
 
     # Run for up to 500 steps
-    for _ in range(500):
+    for i in range(500):
         obs, reward, done, info = env.step(None)
+        if i % 50 == 0:
+            print(
+                f"[{i:04d} Steps] 覆盖率: {info['coverage']:>6.2%} | 碰撞: {info['collisions']:>3} 次 | 剩余灰尘: {info['remaining_dirt']}")
+
         if done:
+            print(f"\n✅ 任务触发停止条件 (Steps: {info['steps']})")
             break
 
     # Print final coverage
-    print(f"Coverage achieved: {info['coverage']:.2f}")
-
+    final_results = env.get_metrics()
+    print("\n" + "=" * 40)
+    print("Performance evaluation ")
+    print("=" * 40)
+    for key, value in final_results.items():
+        print(f"{key:20}: {value}")
+    print("=" * 40)
     # Close the window
     env.close()
 
