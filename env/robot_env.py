@@ -390,6 +390,14 @@ class RobotEnvironment:
             return 0.0
         return len(self.cleaned_cells) / total_cells
 
+    def get_dirt_positions(self):
+        """Return current dirt positions as [(name, x, y), ...]."""
+        dirt_positions = []
+        for obj in self.passive_objects:
+            if isinstance(obj, Dirt):
+                dirt_positions.append((obj.name, obj.centreX, obj.centreY))
+        return dirt_positions
+
     def render(self):
         """Render the current state (already updated in step)."""
         pass

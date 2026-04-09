@@ -80,6 +80,14 @@ python experiments/member_c_week1_coordination.py
 
 Outputs are saved in `data/member_c_week1/` (CSV + JSON summaries and trajectories).
 
+### 5. Run member C week2 blackboard experiment:
+
+```bash
+python experiments/member_c_week2_blackboard.py
+```
+
+Week2 outputs are saved in `data/member_c_week2/`.
+
 ## Project Structure
 
 text
