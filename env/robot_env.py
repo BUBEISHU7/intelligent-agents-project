@@ -139,29 +139,47 @@ class RobotEnvironment:
         self._reset_metrics()
         return self._get_observation()
 
-    def step(self, actions):
+    def step(self, actions=None):
         """
         Advance the environment by one time step.
 
-        :param actions: Ignored here; robots use their internal brains.
+        :param actions: Optional list of (left_speed, right_speed) tuples for each robot.
+                        If provided and length matches number of robots, the robots will
+                        execute those speeds directly and ignore their built-in Brain.
+                        If None or length mismatch, robots use their internal Brain.
         :return: (observation, reward, done, info)
         """
         if not hasattr(self, 'total_steps'):
-            self._reset_metrics()  # 如果还没初始化指标，先初始化
+            self._reset_metrics()
 
         self.total_steps += 1
-        # Let each robot decide and act
+
+        # Determine if external actions are valid
+        use_external = (actions is not None and len(actions) == len(self.agents))
+
         for i, rr in enumerate(self.agents):
-            # 记录移动前的位置
+            # 记录移动前的位置（用于碰撞检测和距离计算）
             old_x, old_y = rr.x, rr.y
-            rr.thinkAndAct(self.agents, self.passive_objects)
+
+            if use_external:
+                # Override speeds with external command
+                left_speed, right_speed = actions[i]
+                rr.sl = left_speed
+                rr.sr = right_speed
+                # 跳过 thinkAndAct，因为速度已经直接设置
+            else:
+                # Use the built-in Brain (original behavior)
+                rr.thinkAndAct(self.agents, self.passive_objects)
+
+            # 物理更新和污渍收集（无论哪种模式都需要）
             rr.update(self.canvas, self.passive_objects, 1.0)
             self.passive_objects = rr.collectDirt(self.canvas, self.passive_objects)
-            # 计算位移
+
+            # 计算位移（用于 total_distance 指标）
             step_dist = math.sqrt((rr.x - old_x) ** 2 + (rr.y - old_y) ** 2)
             self.total_distance += step_dist
 
-            # 只有从“未碰撞”变为“碰撞”时才计数一次
+            # 碰撞检测（与障碍物）
             colliding_now = False
             for obj in self.passive_objects:
                 if isinstance(obj, Obstacle):
@@ -176,10 +194,12 @@ class RobotEnvironment:
             if colliding_now and not self.bot_collision_state[i]:
                 self.collision_count += 1
             self.bot_collision_state[i] = colliding_now
-        # Update canvas
+
+        # 更新画布
         self.canvas.update()
         self.canvas.after(50)
-        # 获取最新的指标并计算 reward
+
+        # 计算奖励和完成标志
         metrics = self.get_metrics()
         reward = metrics['coverage'] - self._prev_coverage
         self._prev_coverage = metrics['coverage']
@@ -187,8 +207,6 @@ class RobotEnvironment:
         done = metrics['success'] or (self.total_steps >= 2000)
 
         return self._get_observation(), reward, done, metrics
-
-        #统一的实验结果输出接口
 
     def get_metrics(self):
         """获取标准化的性能度量字典"""
