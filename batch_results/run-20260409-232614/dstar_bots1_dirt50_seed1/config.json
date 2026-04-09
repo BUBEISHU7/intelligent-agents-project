@@ -1,0 +1,8 @@
+{
+  "exp_id": "dstar_bots1_dirt50_seed1",
+  "algorithm": "dstar",
+  "num_bots": 1,
+  "num_dirt": 50,
+  "seed": 1,
+  "max_steps": 500
+}

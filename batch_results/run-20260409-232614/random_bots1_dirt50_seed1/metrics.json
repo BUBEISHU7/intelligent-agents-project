@@ -1,0 +1,19 @@
+{
+  "exp_id": "random_bots1_dirt50_seed1",
+  "algorithm": "random",
+  "num_bots": 1,
+  "num_dirt": 50,
+  "seed": 1,
+  "max_steps": 500,
+  "total_steps": 500,
+  "completed": false,
+  "runtime_seconds": 31.0682,
+  "timestamp": "2026-04-09 23:27:16",
+  "coverage": 0.0424,
+  "remaining_dirt": 41,
+  "collisions": 0,
+  "total_distance": 1963.1,
+  "path_efficiency": 0.0216,
+  "performance_score": -2.723,
+  "success": 0
+}
