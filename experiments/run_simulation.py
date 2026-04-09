@@ -8,8 +8,8 @@ import sys
 sys.path.append("..")
 from env.robot_env import RobotEnvironment
 
-def run_test_once_and_save(num_bots=1, num_dirt=50, max_steps=500):
-    env = RobotEnvironment(num_bots=num_bots, num_dirt=num_dirt)
+def run_test_once_and_save(num_bots=1, num_dirt=50, max_steps=500, noise_config=None):
+    env = RobotEnvironment(num_bots=num_bots, num_dirt=num_dirt, noise_config=noise_config)
     obs = env.reset()
     start_time = time.time()
 
@@ -41,7 +41,8 @@ def run_test_once_and_save(num_bots=1, num_dirt=50, max_steps=500):
             "strategy": strategy,
             "num_bots": num_bots,
             "runtime_seconds": round(total_runtime, 2),
-            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
+            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "noise_settings": noise_config if noise_config else "Ideal_No_Noise"
         },
         "performance_results": final_metrics,  # 包含覆盖率、碰撞、路径效率等
         "trajectories": trajectories
@@ -109,4 +110,12 @@ def run_test_once_and_save(num_bots=1, num_dirt=50, max_steps=500):
     print(f"Done. {num_bots} robots, Steps taken: {step}/{max_steps}")
 
 if __name__ == "__main__":
-    run_test_once_and_save(num_bots=1, num_dirt=300, max_steps=500)
+    # 在主入口定义正式实验的噪声参数并调用
+    formal_noise_config = {
+        'sensor_pos_std': 1.5,
+        'sensor_angle_std': 0.03,
+        'sensor_light_std': 1.0,
+        'actuator_slip_std': 0.05,  # 5% 的滑移率
+        'actuator_turn_std': 0.01
+    }
+    run_test_once_and_save(num_bots=1, num_dirt=300, max_steps=500, noise_config=formal_noise_config)

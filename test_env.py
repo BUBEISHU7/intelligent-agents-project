@@ -4,8 +4,15 @@
 from env.robot_env import RobotEnvironment
 
 def main():
+    test_noise_config = {
+        'sensor_pos_std': 2.0,  # 模拟定位漂移 (像素)
+        'sensor_angle_std': 0.05,  # 模拟指南针/陀螺仪抖动 (弧度)
+        'sensor_light_std': 5.0,  # 模拟光线传感器环境底噪
+        'actuator_slip_std': 0.1,  # 模拟轮子打滑 (10% 误差)
+        'actuator_turn_std': 0.02  # 模拟转向机械虚位 (弧度)
+    }
     # Create environment with 1 robot and 50 dirt particles
-    env = RobotEnvironment(num_bots=1, num_dirt=50)
+    env = RobotEnvironment(num_bots=1, num_dirt=50, noise_config=test_noise_config)
 
     # Reset to get initial observation
     obs = env.reset()

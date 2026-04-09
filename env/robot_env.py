@@ -13,7 +13,7 @@ from .simpleBot2 import Bot, Brain, Lamp, Charger, WiFiHub, Dirt, Obstacle
 class RobotEnvironment:
     """Robot environment that encapsulates the simulation and provides a standard interface."""
 
-    def __init__(self, canvas_width=1000, canvas_height=1000, num_bots=1, num_dirt=300, seed=None):
+    def __init__(self, canvas_width=1000, canvas_height=1000, num_bots=1, num_dirt=300, seed=None,noise_config=None):
         """
         Initialize the environment.
 
@@ -52,6 +52,18 @@ class RobotEnvironment:
         self.cell_size = 20          # grid cell size for coverage estimation
         self._prev_coverage = 0.0    # previous coverage to compute reward
         self._reset_metrics()
+        self.noise_config = {
+            'sensor_pos_std': 0.0,  # 位置感知的标准差 (像素)
+            'sensor_angle_std': 0.0,  # 角度感知的标准差 (弧度)
+            'sensor_light_std': 0.0,  # 光感传感器的标准差
+            'actuator_slip_std': 0.0,  # 移动打滑的标准差 (比例)
+            'actuator_turn_std': 0.0  # 转向误差的标准差 (弧度)
+        }
+        # 如果传入了自定义配置，则更新默认值
+        if noise_config is not None:
+            self.noise_config.update(noise_config)
+
+
 
     def _reset_metrics(self):
             """初始化或重置实验数据计数器"""
@@ -154,8 +166,25 @@ class RobotEnvironment:
         for i, rr in enumerate(self.agents):
             # 记录移动前的位置
             old_x, old_y = rr.x, rr.y
+            old_theta = rr.theta
             rr.thinkAndAct(self.agents, self.passive_objects)
             rr.update(self.canvas, self.passive_objects, 1.0)
+
+            intended_dx = rr.x - old_x
+            intended_dy = rr.y - old_y
+            step_dist = math.sqrt(intended_dx ** 2 + intended_dy ** 2)
+            if step_dist > 0.001:
+                # 打滑误差与移动距离成正比
+                slip_x = np.random.normal(0, self.noise_config['actuator_slip_std'] * step_dist)
+                slip_y = np.random.normal(0, self.noise_config['actuator_slip_std'] * step_dist)
+                rr.x += slip_x
+                rr.y += slip_y
+
+                # 只有当机器人发生转向时，才会产生转向误差
+                dtheta = rr.theta - old_theta
+                if abs(dtheta) > 0.001:
+                    turn_error = np.random.normal(0, self.noise_config['actuator_turn_std'])
+                    rr.theta += turn_error
             self.passive_objects = rr.collectDirt(self.canvas, self.passive_objects)
             # 计算位移
             step_dist = math.sqrt((rr.x - old_x) ** 2 + (rr.y - old_y) ** 2)
@@ -234,14 +263,26 @@ class RobotEnvironment:
         obs = []
         for rr in self.agents:
             # Sense light (just for demonstration)
-            lightL, lightR = rr.senseLight(self.passive_objects)
+            real_lightL, real_lightR = rr.senseLight(self.passive_objects)
+
+            # 1. 注入光感噪声 (使用 max 确保光线值不为负)
+            noisy_lightL = max(0.0, np.random.normal(real_lightL, self.noise_config['sensor_light_std']))
+            noisy_lightR = max(0.0, np.random.normal(real_lightR, self.noise_config['sensor_light_std']))
+
+            # 2. 注入里程计/定位噪声
+            noisy_x = np.random.normal(rr.x, self.noise_config['sensor_pos_std'])
+            noisy_y = np.random.normal(rr.y, self.noise_config['sensor_pos_std'])
+            noisy_theta = np.random.normal(rr.theta, self.noise_config['sensor_angle_std'])
             obs.append({
                 'x': rr.x,
                 'y': rr.y,
                 'theta': rr.theta,
                 'battery': rr.battery,
-                'sensor_left': lightL,
-                'sensor_right': lightR
+                'sensor_left': noisy_lightL,
+                'sensor_right': noisy_lightR,
+                'real_x': rr.x,
+                'real_y': rr.y,
+                'real_theta': rr.theta
             })
         return obs
 
