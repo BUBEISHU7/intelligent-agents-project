@@ -269,3 +269,11 @@ class RobotEnvironment:
     def close(self):
         """Close the Tkinter window."""
         self.window.destroy()
+
+    def compute_path(self, start, goal, algorithm='astar'):
+        if algorithm == 'astar':
+            planner = AStarPlanner(self.get_grid())
+            return planner.plan(start, goal)
+        elif algorithm == 'dstar':
+            # D* Lite instance must be persistent; you'd need to store it in the environment
+            pass
