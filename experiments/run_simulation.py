@@ -7,6 +7,7 @@ import time
 import sys
 sys.path.append("..")
 from env.robot_env import RobotEnvironment
+from agents.goap_agent import GOAPAgent
 
 def run_test_once_and_save(num_bots=1, num_dirt=50, max_steps=500):
     env = RobotEnvironment(num_bots=num_bots, num_dirt=num_dirt)
@@ -14,12 +15,20 @@ def run_test_once_and_save(num_bots=1, num_dirt=50, max_steps=500):
     start_time = time.time()
 
     trajectories = {f"robot_{i}": [] for i in range(num_bots)}
-    strategy = "random"
-    
+    strategy = "goap"
+    agents = [GOAPAgent() for _ in range(num_bots)]
+
     for step in range(max_steps):
         # print("Current step:", step)
-        
-        obs, reward, done, info = env.step(None)
+
+
+        actions = []
+
+        for i in range(num_bots):
+            action = agents[i].act(obs[i], env.agents[i], env.passive_objects)
+            actions.append(action)
+
+        obs, reward, done, info = env.step(actions)
         for i, agent in enumerate(env.agents):
             trajectories[f"robot_{i}"].append([step, agent.x, agent.y])
 
@@ -28,7 +37,7 @@ def run_test_once_and_save(num_bots=1, num_dirt=50, max_steps=500):
             print(f"[{step:04d} 步] 覆盖率: {info['coverage']:.2%} | 碰撞: {info['collisions']} 次")
         if done:
             break
-        
+
         # for i, agent in enumerate(env.agents):
         #     x, y = agent.x, agent.y
         #     trajectories[f"robot_{i}"].append([step, x, y])
@@ -59,7 +68,7 @@ def run_test_once_and_save(num_bots=1, num_dirt=50, max_steps=500):
             writer.writerow(["step", "x", "y"])
             writer.writerows(traj)
 
-  
+
     # metrics = {
     #     "strategy": strategy,
     #     "num_bots": num_bots,
@@ -87,7 +96,7 @@ def run_test_once_and_save(num_bots=1, num_dirt=50, max_steps=500):
     fig, axes = plt.subplots(1, num_robots, figsize=(6*num_robots, 6))
     if num_robots == 1:
         axes = [axes]
-    
+
     for idx, (robot_name, traj) in enumerate(trajectories.items()):
         traj_np = np.array(traj)
         ax = axes[idx]
@@ -99,12 +108,12 @@ def run_test_once_and_save(num_bots=1, num_dirt=50, max_steps=500):
         ax.set_ylabel("Y")
         ax.legend()
         ax.grid(True)
-    
+
     plt.tight_layout()
     img_path = f"../data/{strategy}_trajectory.png"
     plt.savefig(img_path, dpi=150, bbox_inches="tight")
     plt.close()
-    
+
     env.close()
     print(f"Done. {num_bots} robots, Steps taken: {step}/{max_steps}")
 
