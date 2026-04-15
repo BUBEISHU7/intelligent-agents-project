@@ -1,7 +1,23 @@
 # Intelligent Agents Project
 
-This repository contains the coursework project for the module **Designing Intelligent Agents**.  
-We focus on a **robotics-based environment** with **complex planning**, **multi-agent coordination**, and **noise robustness**.
+This repository contains a complete agent-based system for coursework in **Designing Intelligent Agents**.
+The project is centered on a **multi-robot cleaning simulation** where autonomous agents plan, coordinate, and adapt under uncertainty.
+
+## System Goal
+
+The overall target is to build and evaluate an intelligent agent system with:
+
+1. **Environment**  
+   A robotics simulation with static/dynamic obstacles, charging station, dirt targets, shared map, and configurable sensing/execution noise.
+
+2. **Autonomous Agents**  
+   Multi-agent control combining GOAP-style decision making, A*/D* Lite path planning, task auction, and distributed collision avoidance.
+
+3. **Concrete Research Question**  
+   Compare algorithmic choices (e.g., A* vs D* Lite) and coordination strategies under dynamic obstacles and noise to evaluate robustness.
+
+4. **Repeatable Experiments**  
+   Run factorial experiment matrices across seeds and conditions; aggregate metrics and plots to answer the research question statistically.
 
 ---
 
@@ -10,6 +26,7 @@ We focus on a **robotics-based environment** with **complex planning**, **multi-
 - [Environment Setup](#environment-setup)
 - [Quick Start](#quick-start)
 - [Project Structure](#project-structure)
+- [Research Workflow](#research-workflow)
 - [Code Attribution](#code-attribution)
 - [Contributing](#contributing)
 - [License](#license)
@@ -108,6 +125,40 @@ intelligent-agents-project/
 ├── test_env.py              # Simple test script
 ├── requirements.txt         # Python dependencies
 └── README.md                # This file
+```
+
+## Research Workflow
+
+1. Run a preset matrix:
+
+```bash
+python experiments/run_batch.py --preset noise_stress
+```
+
+2. Analyze one run directory:
+
+```bash
+python experiments/analyze_results.py --run-dir batch_results/<run_name>
+```
+
+3. Use generated outputs under `batch_results/<run_name>/analysis/`:
+- `mean_by_algorithm.csv`
+- `mean_by_dynamic_obstacles.csv`
+- `coverage_vs_dynamic_obstacles.png`
+- `dynamic_collisions_heatmap.png`
+
+### Unified Q1–Q5 Research Suite (recommended for the report)
+
+Run the full suite (outputs: `all_runs.csv`, `summary_by_condition.csv`, plots, anomalies):
+
+```bash
+python experiments/run_research_suite.py --output-dir research_results_full
+```
+
+Fast sanity check:
+
+```bash
+python experiments/run_research_suite.py --fast --output-dir research_results_fast
 ```
 
 ## Code Attribution

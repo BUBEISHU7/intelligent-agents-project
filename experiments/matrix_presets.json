@@ -1,0 +1,177 @@
+{
+  "_comment": "实验设计：自变量(IV)与水平。run_batch 对 algorithms × num_bots × num_dirt × seeds 做全因子组合。",
+  "presets": {
+    "quick": {
+      "label": "快速冒烟：2算法×1任务规模×1种子",
+      "independent_variables": {
+        "algorithm": {
+          "description": "规划策略",
+          "levels": ["random", "astar"]
+        },
+        "num_dirt": {
+          "description": "环境中灰尘数量（任务难度代理）",
+          "levels": [50]
+        },
+        "seed": {
+          "description": "随机种子（可重复性）",
+          "levels": [0]
+        },
+        "num_dynamic_obstacles": {
+          "description": "动态障碍物数量",
+          "levels": [0]
+        },
+        "sensor_noise": {
+          "description": "传感器高斯噪声标准差",
+          "levels": [0.0]
+        },
+        "execution_noise": {
+          "description": "执行噪声标准差",
+          "levels": [0.0]
+        }
+      },
+      "controlled": {
+        "num_bots": [1],
+        "max_steps": 200
+      },
+      "grid": {
+        "algorithms": ["random", "astar"],
+        "num_bots": [1],
+        "num_dirt": [50],
+        "seeds": [0],
+        "num_dynamic_obstacles": [0],
+        "sensor_noise": [0.0],
+        "execution_noise": [0.0],
+        "max_steps": 200
+      }
+    },
+    "default": {
+      "label": "课程扩展基线：3算法×2任务规模×2种子×2动态障碍条件 = 24 组",
+      "independent_variables": {
+        "algorithm": {
+          "description": "规划策略：随机 / A* / D* Lite",
+          "levels": ["random", "astar", "dstar"]
+        },
+        "num_dirt": {
+          "description": "灰尘数量",
+          "levels": [50, 100]
+        },
+        "seed": {
+          "description": "随机种子",
+          "levels": [0, 1]
+        },
+        "num_dynamic_obstacles": {
+          "description": "动态障碍物数量",
+          "levels": [0, 2]
+        },
+        "sensor_noise": {
+          "description": "传感器高斯噪声标准差",
+          "levels": [0.0]
+        },
+        "execution_noise": {
+          "description": "执行噪声标准差",
+          "levels": [0.0]
+        }
+      },
+      "controlled": {
+        "num_bots": [1],
+        "max_steps": 1200
+      },
+      "grid": {
+        "algorithms": ["random", "astar", "dstar"],
+        "num_bots": [1],
+        "num_dirt": [50, 100],
+        "seeds": [0, 1],
+        "num_dynamic_obstacles": [0, 2],
+        "sensor_noise": [0.0],
+        "execution_noise": [0.0],
+        "max_steps": 1200
+      }
+    },
+    "full": {
+      "label": "扩展：多机器人×多任务×多种子×动态障碍×噪声",
+      "independent_variables": {
+        "algorithm": {
+          "description": "规划策略",
+          "levels": ["random", "astar", "dstar"]
+        },
+        "num_bots": {
+          "description": "机器人数量（协作规模）",
+          "levels": [1, 2]
+        },
+        "num_dirt": {
+          "description": "灰尘数量",
+          "levels": [50, 100, 150]
+        },
+        "seed": {
+          "description": "随机种子",
+          "levels": [0, 1, 2]
+        },
+        "num_dynamic_obstacles": {
+          "description": "动态障碍物数量",
+          "levels": [0, 2]
+        },
+        "sensor_noise": {
+          "description": "传感器高斯噪声标准差",
+          "levels": [0.0, 2.0]
+        },
+        "execution_noise": {
+          "description": "执行噪声标准差",
+          "levels": [0.0, 0.3]
+        }
+      },
+      "controlled": {
+        "max_steps": 1200
+      },
+      "grid": {
+        "algorithms": ["random", "astar", "dstar"],
+        "num_bots": [1, 2],
+        "num_dirt": [50, 100, 150],
+        "seeds": [0, 1, 2],
+        "num_dynamic_obstacles": [0, 2],
+        "sensor_noise": [0.0, 2.0],
+        "execution_noise": [0.0, 0.3],
+        "max_steps": 1200
+      }
+    },
+    "noise_stress": {
+      "label": "噪声鲁棒性：固定任务规模，扫描动态障碍与感知/执行噪声",
+      "independent_variables": {
+        "algorithm": {
+          "description": "规划策略",
+          "levels": ["astar", "dstar"]
+        },
+        "num_dynamic_obstacles": {
+          "description": "动态障碍物数量",
+          "levels": [0, 2, 4]
+        },
+        "sensor_noise": {
+          "description": "传感器高斯噪声标准差",
+          "levels": [0.0, 2.0, 5.0]
+        },
+        "execution_noise": {
+          "description": "执行噪声标准差",
+          "levels": [0.0, 0.3, 0.8]
+        },
+        "seed": {
+          "description": "随机种子",
+          "levels": [0, 1]
+        }
+      },
+      "controlled": {
+        "num_bots": [2],
+        "num_dirt": [100],
+        "max_steps": 1200
+      },
+      "grid": {
+        "algorithms": ["astar", "dstar"],
+        "num_bots": [2],
+        "num_dirt": [100],
+        "seeds": [0, 1],
+        "num_dynamic_obstacles": [0, 2, 4],
+        "sensor_noise": [0.0, 2.0, 5.0],
+        "execution_noise": [0.0, 0.3, 0.8],
+        "max_steps": 1200
+      }
+    }
+  }
+}

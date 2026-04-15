@@ -204,3 +204,9 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 .DS_Store
+
+# Local experiment outputs (large; regenerate with experiments/*.py)
+batch_results/
+research_requirements_results/
+research_requirements_results_full/
+research_*/
