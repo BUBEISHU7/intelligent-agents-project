@@ -1,0 +1,4 @@
+sensor_noise,coverage,collisions,dynamic_collisions,performance_score,success
+0.0,0.0151,9.1667,8.4722,-24.8929,0.0
+2.0,0.0165,8.5278,8.0556,-23.4615,0.0
+5.0,0.0156,8.2222,8.0278,-22.8596,0.0

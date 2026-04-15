@@ -1,0 +1,13 @@
+exp_id,algorithm,num_bots,num_dirt,seed,max_steps,num_dynamic_obstacles,sensor_noise,execution_noise,total_steps,completed,runtime_seconds,timestamp,coverage,remaining_dirt,collisions,dynamic_collisions,robot_collisions,total_distance,path_efficiency,performance_score,success
+random_bots1_dirt50_dyn0_snoise0p0_enoise0p0_seed0,random,1,50,0,1500,0,0.0,0.0,1500,True,1.1822,2026-04-14 19:43:25,0.14,43,0,0,0,5760.64,0.0243,-6.761,0
+random_bots1_dirt50_dyn0_snoise0p0_enoise0p0_seed1,random,1,50,1,1500,0,0.0,0.0,1500,True,1.3983,2026-04-14 19:43:26,0.14,43,1,0,0,5743.96,0.0244,-8.744,0
+random_bots1_dirt100_dyn0_snoise0p0_enoise0p0_seed0,random,1,100,0,1500,0,0.0,0.0,1500,True,1.6558,2026-04-14 19:43:28,0.22,78,5,0,0,5743.47,0.0383,-8.743,0
+random_bots1_dirt100_dyn0_snoise0p0_enoise0p0_seed1,random,1,100,1,1500,0,0.0,0.0,1500,True,1.5694,2026-04-14 19:43:29,0.12,88,1,0,0,5393.73,0.0222,-10.394,0
+astar_bots1_dirt50_dyn0_snoise0p0_enoise0p0_seed0,astar,1,50,0,1500,0,0.0,0.0,1500,True,2.1867,2026-04-14 19:43:32,0.08,46,0,0,0,5216.75,0.0153,-12.217,0
+astar_bots1_dirt50_dyn0_snoise0p0_enoise0p0_seed1,astar,1,50,1,1500,0,0.0,0.0,1500,True,1.9101,2026-04-14 19:43:34,0.04,48,0,0,0,3600.73,0.0111,-14.601,0
+astar_bots1_dirt100_dyn0_snoise0p0_enoise0p0_seed0,astar,1,100,0,1500,0,0.0,0.0,1500,True,2.9236,2026-04-14 19:43:37,0.15,85,2,0,0,6358.09,0.0236,-10.358,0
+astar_bots1_dirt100_dyn0_snoise0p0_enoise0p0_seed1,astar,1,100,1,1500,0,0.0,0.0,1500,True,3.2603,2026-04-14 19:43:40,0.07,93,0,0,0,5148.86,0.0136,-13.149,0
+dstar_bots1_dirt50_dyn0_snoise0p0_enoise0p0_seed0,dstar,1,50,0,1500,0,0.0,0.0,1500,True,2.5178,2026-04-14 19:43:43,0.08,46,0,0,0,5685.61,0.0141,-12.686,0
+dstar_bots1_dirt50_dyn0_snoise0p0_enoise0p0_seed1,dstar,1,50,1,1500,0,0.0,0.0,1500,True,1.9314,2026-04-14 19:43:45,0.06,47,0,0,0,3768.69,0.0159,-12.769,0
+dstar_bots1_dirt100_dyn0_snoise0p0_enoise0p0_seed0,dstar,1,100,0,1500,0,0.0,0.0,1500,True,3.4651,2026-04-14 19:43:48,0.15,85,1,0,0,1834.45,0.0818,-3.834,0
+dstar_bots1_dirt100_dyn0_snoise0p0_enoise0p0_seed1,dstar,1,100,1,1500,0,0.0,0.0,1500,True,3.0026,2026-04-14 19:43:51,0.07,93,0,0,0,5374.2,0.013,-13.374,0

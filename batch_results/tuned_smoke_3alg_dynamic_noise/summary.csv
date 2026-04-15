@@ -1,0 +1,13 @@
+exp_id,algorithm,num_bots,num_dirt,seed,max_steps,num_dynamic_obstacles,sensor_noise,execution_noise,total_steps,completed,runtime_seconds,timestamp,coverage,remaining_dirt,collisions,dynamic_collisions,robot_collisions,total_distance,path_efficiency,performance_score,success
+random_bots1_dirt80_dyn2_snoise1p0_enoise0p15_seed0,random,1,80,0,1500,2,1.0,0.15,1500,True,1.4907,2026-04-14 19:47:54,0.0125,79,0,0,0,5400.83,0.0023,-19.151,0
+random_bots1_dirt80_dyn2_snoise1p0_enoise0p15_seed1,random,1,80,1,1500,2,1.0,0.15,1500,True,2.0648,2026-04-14 19:47:56,0.1625,67,7,1,0,5860.6,0.0277,-18.611,0
+random_bots1_dirt120_dyn2_snoise1p0_enoise0p15_seed0,random,1,120,0,1500,2,1.0,0.15,1500,True,1.8357,2026-04-14 19:47:58,0.025,117,10,3,0,5443.64,0.0046,-37.944,0
+random_bots1_dirt120_dyn2_snoise1p0_enoise0p15_seed1,random,1,120,1,1500,2,1.0,0.15,1500,True,1.9704,2026-04-14 19:48:00,0.0167,118,2,0,0,5270.31,0.0032,-22.604,0
+astar_bots1_dirt80_dyn2_snoise1p0_enoise0p15_seed0,astar,1,80,0,1500,2,1.0,0.15,1500,True,3.4387,2026-04-14 19:48:04,0.025,78,56,13,0,1826.71,0.0137,-126.327,0
+astar_bots1_dirt80_dyn2_snoise1p0_enoise0p15_seed1,astar,1,80,1,1500,2,1.0,0.15,1500,True,3.9129,2026-04-14 19:48:08,0.1,72,25,5,0,1555.59,0.0643,-56.556,0
+astar_bots1_dirt120_dyn2_snoise1p0_enoise0p15_seed0,astar,1,120,0,1500,2,1.0,0.15,1500,True,4.5151,2026-04-14 19:48:12,0.0083,119,0,0,0,5122.59,0.0016,-19.289,0
+astar_bots1_dirt120_dyn2_snoise1p0_enoise0p15_seed1,astar,1,120,1,1500,2,1.0,0.15,1500,True,3.6645,2026-04-14 19:48:16,0.0,120,0,0,0,5060.81,0.0,-20.061,0
+dstar_bots1_dirt80_dyn2_snoise1p0_enoise0p15_seed0,dstar,1,80,0,1500,2,1.0,0.15,1500,True,3.3993,2026-04-14 19:48:20,0.0125,79,67,8,0,492.25,0.0254,-148.242,0
+dstar_bots1_dirt80_dyn2_snoise1p0_enoise0p15_seed1,dstar,1,80,1,1500,2,1.0,0.15,1500,True,4.8809,2026-04-14 19:48:25,0.05,76,0,0,0,5588.07,0.0089,-15.588,0
+dstar_bots1_dirt120_dyn2_snoise1p0_enoise0p15_seed0,dstar,1,120,0,1500,2,1.0,0.15,1500,True,6.6482,2026-04-14 19:48:31,0.0083,119,25,6,0,5394.85,0.0015,-69.562,0
+dstar_bots1_dirt120_dyn2_snoise1p0_enoise0p15_seed1,dstar,1,120,1,1500,2,1.0,0.15,1500,True,5.5883,2026-04-14 19:48:37,0.0,120,0,0,0,5084.96,0.0,-20.085,0

@@ -1,0 +1,4 @@
+num_dynamic_obstacles,coverage,collisions,dynamic_collisions,performance_score,success
+0,0.0155,0.0,0.0,-7.4769,0.0
+2,0.021,12.5278,12.1944,-29.9742,0.0
+4,0.0107,13.3889,12.3611,-33.7628,0.0

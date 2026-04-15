@@ -1,0 +1,8 @@
+{
+  "exp_id": "random_bots1_dirt100_seed1",
+  "algorithm": "random",
+  "num_bots": 1,
+  "num_dirt": 100,
+  "seed": 1,
+  "max_steps": 500
+}

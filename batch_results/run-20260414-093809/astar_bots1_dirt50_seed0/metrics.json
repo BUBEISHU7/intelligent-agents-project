@@ -1,0 +1,19 @@
+{
+  "exp_id": "astar_bots1_dirt50_seed0",
+  "algorithm": "astar",
+  "num_bots": 1,
+  "num_dirt": 50,
+  "seed": 0,
+  "max_steps": 500,
+  "total_steps": 500,
+  "completed": false,
+  "runtime_seconds": 31.046,
+  "timestamp": "2026-04-14 09:40:46",
+  "coverage": 0.04,
+  "remaining_dirt": 48,
+  "collisions": 1,
+  "total_distance": 1568.95,
+  "path_efficiency": 0.0255,
+  "performance_score": -4.569,
+  "success": 0
+}

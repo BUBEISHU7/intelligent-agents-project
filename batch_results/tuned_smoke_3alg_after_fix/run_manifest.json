@@ -1,0 +1,31 @@
+{
+  "run_name": "tuned_smoke_3alg_after_fix",
+  "created_at": "2026-04-14 19:35:19",
+  "out_dir": "C:\\Users\\HP\\Desktop\\intelligent-agents-project\\batch_results\\tuned_smoke_3alg_after_fix",
+  "grid": {
+    "algorithms": [
+      "random",
+      "astar",
+      "dstar"
+    ],
+    "num_bots": [
+      1
+    ],
+    "num_dirt": [
+      80
+    ],
+    "seeds": [
+      0
+    ],
+    "max_steps": 1500,
+    "num_dynamic_obstacles": [
+      0
+    ],
+    "sensor_noise": [
+      0.0
+    ],
+    "execution_noise": [
+      0.0
+    ]
+  }
+}

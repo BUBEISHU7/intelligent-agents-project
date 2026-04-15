@@ -1,0 +1,13 @@
+exp_id,algorithm,num_bots,num_dirt,seed,max_steps,num_dynamic_obstacles,sensor_noise,execution_noise,total_steps,completed,runtime_seconds,timestamp,coverage,remaining_dirt,collisions,dynamic_collisions,robot_collisions,total_distance,path_efficiency,performance_score,success
+random_bots1_dirt50_dyn0_snoise0p0_enoise0p0_seed0,random,1,50,0,500,0,0.0,0.0,500,True,0.2888,2026-04-14 19:54:43,0.14,43,0,0,0,2007.18,0.0697,6.993,0
+random_bots1_dirt50_dyn0_snoise0p0_enoise0p0_seed1,random,1,50,1,500,0,0.0,0.0,500,True,0.307,2026-04-14 19:54:43,0.08,46,1,0,0,2055.44,0.0389,-1.055,0
+random_bots1_dirt100_dyn0_snoise0p0_enoise0p0_seed0,random,1,100,0,500,0,0.0,0.0,500,True,0.6125,2026-04-14 19:54:44,0.11,89,5,0,0,1880.71,0.0585,-5.881,0
+random_bots1_dirt100_dyn0_snoise0p0_enoise0p0_seed1,random,1,100,1,500,0,0.0,0.0,500,True,0.4596,2026-04-14 19:54:44,0.07,93,1,0,0,1977.52,0.0354,-1.978,0
+astar_bots1_dirt50_dyn0_snoise0p0_enoise0p0_seed0,astar,1,50,0,500,0,0.0,0.0,500,True,0.999,2026-04-14 19:54:45,0.08,46,1,0,0,2718.73,0.0294,-1.719,0
+astar_bots1_dirt50_dyn0_snoise0p0_enoise0p0_seed1,astar,1,50,1,500,0,0.0,0.0,500,True,1.63,2026-04-14 19:54:47,0.1,45,0,0,0,2822.14,0.0354,2.178,0
+astar_bots1_dirt100_dyn0_snoise0p0_enoise0p0_seed0,astar,1,100,0,500,0,0.0,0.0,500,True,3.9792,2026-04-14 19:54:51,0.09,91,0,0,0,2899.61,0.031,1.1,0
+astar_bots1_dirt100_dyn0_snoise0p0_enoise0p0_seed1,astar,1,100,1,500,0,0.0,0.0,500,True,4.3021,2026-04-14 19:54:56,0.07,93,0,0,0,2842.43,0.0246,-0.842,0
+dstar_bots1_dirt50_dyn0_snoise0p0_enoise0p0_seed0,dstar,1,50,0,500,0,0.0,0.0,500,True,2.0495,2026-04-14 19:54:58,0.1,45,2,0,0,2620.92,0.0382,-1.621,0
+dstar_bots1_dirt50_dyn0_snoise0p0_enoise0p0_seed1,dstar,1,50,1,500,0,0.0,0.0,500,True,1.7718,2026-04-14 19:55:00,0.12,44,1,0,0,2663.75,0.045,2.336,0
+dstar_bots1_dirt100_dyn0_snoise0p0_enoise0p0_seed0,dstar,1,100,0,500,0,0.0,0.0,500,True,3.9944,2026-04-14 19:55:04,0.05,95,0,0,0,2621.38,0.0191,-2.621,0
+dstar_bots1_dirt100_dyn0_snoise0p0_enoise0p0_seed1,dstar,1,100,1,500,0,0.0,0.0,500,True,3.6932,2026-04-14 19:55:07,0.1,90,0,0,0,2295.94,0.0436,2.704,0

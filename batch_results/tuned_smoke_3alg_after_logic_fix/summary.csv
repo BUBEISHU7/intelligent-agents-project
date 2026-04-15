@@ -1,0 +1,13 @@
+exp_id,algorithm,num_bots,num_dirt,seed,max_steps,num_dynamic_obstacles,sensor_noise,execution_noise,total_steps,completed,runtime_seconds,timestamp,coverage,remaining_dirt,collisions,dynamic_collisions,robot_collisions,total_distance,path_efficiency,performance_score,success
+random_bots1_dirt50_dyn0_snoise0p0_enoise0p0_seed0,random,1,50,0,1500,0,0.0,0.0,1500,True,1.3276,2026-04-14 19:40:33,0.14,43,0,0,0,5760.64,0.0243,-6.761,0
+random_bots1_dirt50_dyn0_snoise0p0_enoise0p0_seed1,random,1,50,1,1500,0,0.0,0.0,1500,True,1.3919,2026-04-14 19:40:35,0.14,43,1,0,0,5743.96,0.0244,-8.744,0
+random_bots1_dirt100_dyn0_snoise0p0_enoise0p0_seed0,random,1,100,0,1500,0,0.0,0.0,1500,True,1.5784,2026-04-14 19:40:37,0.22,78,5,0,0,5743.47,0.0383,-8.743,0
+random_bots1_dirt100_dyn0_snoise0p0_enoise0p0_seed1,random,1,100,1,1500,0,0.0,0.0,1500,True,1.8876,2026-04-14 19:40:39,0.12,88,1,0,0,5393.73,0.0222,-10.394,0
+astar_bots1_dirt50_dyn0_snoise0p0_enoise0p0_seed0,astar,1,50,0,1500,0,0.0,0.0,1500,True,2.0515,2026-04-14 19:40:41,0.08,46,0,0,0,5241.46,0.0153,-12.241,0
+astar_bots1_dirt50_dyn0_snoise0p0_enoise0p0_seed1,astar,1,50,1,1500,0,0.0,0.0,1500,True,1.8766,2026-04-14 19:40:43,0.04,48,0,0,0,4864.32,0.0082,-15.864,0
+astar_bots1_dirt100_dyn0_snoise0p0_enoise0p0_seed0,astar,1,100,0,1500,0,0.0,0.0,1500,True,3.1222,2026-04-14 19:40:46,0.16,84,4,0,0,6538.58,0.0245,-13.539,0
+astar_bots1_dirt100_dyn0_snoise0p0_enoise0p0_seed1,astar,1,100,1,1500,0,0.0,0.0,1500,True,2.7861,2026-04-14 19:40:49,0.07,93,0,0,0,5623.9,0.0124,-13.624,0
+dstar_bots1_dirt50_dyn0_snoise0p0_enoise0p0_seed0,dstar,1,50,0,1500,0,0.0,0.0,1500,True,2.5074,2026-04-14 19:40:51,0.04,48,1,0,0,210.6,0.1899,-13.211,0
+dstar_bots1_dirt50_dyn0_snoise0p0_enoise0p0_seed1,dstar,1,50,1,1500,0,0.0,0.0,1500,True,2.0662,2026-04-14 19:40:53,0.0,50,0,0,0,4457.94,0.0,-19.458,0
+dstar_bots1_dirt100_dyn0_snoise0p0_enoise0p0_seed0,dstar,1,100,0,1500,0,0.0,0.0,1500,True,3.456,2026-04-14 19:40:57,0.03,97,0,0,0,6306.23,0.0048,-18.306,0
+dstar_bots1_dirt100_dyn0_snoise0p0_enoise0p0_seed1,dstar,1,100,1,1500,0,0.0,0.0,1500,True,3.7973,2026-04-14 19:41:01,0.12,88,0,0,0,4795.89,0.025,-7.796,0

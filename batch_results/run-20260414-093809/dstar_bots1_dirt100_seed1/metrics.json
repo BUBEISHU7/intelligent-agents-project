@@ -1,0 +1,19 @@
+{
+  "exp_id": "dstar_bots1_dirt100_seed1",
+  "algorithm": "dstar",
+  "num_bots": 1,
+  "num_dirt": 100,
+  "seed": 1,
+  "max_steps": 500,
+  "total_steps": 500,
+  "completed": false,
+  "runtime_seconds": 31.2094,
+  "timestamp": "2026-04-14 09:44:24",
+  "coverage": 0.0376,
+  "remaining_dirt": 95,
+  "collisions": 0,
+  "total_distance": 1491.38,
+  "path_efficiency": 0.0252,
+  "performance_score": -2.731,
+  "success": 0
+}

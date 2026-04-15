@@ -1,0 +1,7 @@
+exp_id,algorithm,num_bots,num_dirt,seed,max_steps,num_dynamic_obstacles,sensor_noise,execution_noise,total_steps,completed,runtime_seconds,timestamp,coverage,remaining_dirt,collisions,dynamic_collisions,robot_collisions,total_distance,path_efficiency,performance_score,success
+random_bots2_dirt50_dyn2_snoise0p0_enoise0p0_seed0,random,2,50,0,1200,2,0.0,0.0,1200,True,1.0642,2026-04-14 11:38:06,0.12,44,24,5,0,6904.68,0.0174,-54.905,0
+random_bots2_dirt50_dyn2_snoise0p0_enoise0p0_seed1,random,2,50,1,1200,2,0.0,0.0,1200,True,1.1839,2026-04-14 11:38:07,0.12,44,1,0,1,7406.68,0.0162,-9.407,0
+astar_bots2_dirt50_dyn2_snoise0p0_enoise0p0_seed0,astar,2,50,0,1200,2,0.0,0.0,1200,True,2.8597,2026-04-14 11:38:10,0.06,47,9,2,0,3698.69,0.0162,-27.699,0
+astar_bots2_dirt50_dyn2_snoise0p0_enoise0p0_seed1,astar,2,50,1,1200,2,0.0,0.0,1200,True,4.9545,2026-04-14 11:38:15,0.02,49,28,6,0,6931.1,0.0029,-72.931,0
+dstar_bots2_dirt50_dyn2_snoise0p0_enoise0p0_seed0,dstar,2,50,0,1200,2,0.0,0.0,1200,True,4.214,2026-04-14 11:38:19,0.06,47,0,0,0,7198.63,0.0083,-13.199,0
+dstar_bots2_dirt50_dyn2_snoise0p0_enoise0p0_seed1,dstar,2,50,1,1200,2,0.0,0.0,1200,True,4.3113,2026-04-14 11:38:23,0.02,49,32,7,0,6907.86,0.0029,-80.908,0

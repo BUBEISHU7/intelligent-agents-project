@@ -1,0 +1,11 @@
+{
+  "exp_id": "astar_bots2_dirt50_dyn2_snoise0p0_enoise0p0_seed1",
+  "algorithm": "astar",
+  "num_bots": 2,
+  "num_dirt": 50,
+  "seed": 1,
+  "max_steps": 1200,
+  "num_dynamic_obstacles": 2,
+  "sensor_noise": 0.0,
+  "execution_noise": 0.0
+}

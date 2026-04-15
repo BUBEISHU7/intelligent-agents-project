@@ -1,0 +1,30 @@
+{
+  "run_name": "tuned_quick_check_after_patch",
+  "created_at": "2026-04-14 19:32:50",
+  "out_dir": "C:\\Users\\HP\\Desktop\\intelligent-agents-project\\batch_results\\tuned_quick_check_after_patch",
+  "grid": {
+    "algorithms": [
+      "random",
+      "astar"
+    ],
+    "num_bots": [
+      1
+    ],
+    "num_dirt": [
+      80
+    ],
+    "seeds": [
+      0
+    ],
+    "max_steps": 600,
+    "num_dynamic_obstacles": [
+      0
+    ],
+    "sensor_noise": [
+      0.0
+    ],
+    "execution_noise": [
+      0.0
+    ]
+  }
+}

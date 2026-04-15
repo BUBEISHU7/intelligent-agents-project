@@ -1,0 +1,29 @@
+{
+  "run_name": "smoke_orca_goap",
+  "created_at": "2026-04-14 10:45:15",
+  "out_dir": "C:\\Users\\HP\\Desktop\\intelligent-agents-project\\batch_results\\smoke_orca_goap",
+  "grid": {
+    "algorithms": [
+      "dstar"
+    ],
+    "num_bots": [
+      2
+    ],
+    "num_dirt": [
+      20
+    ],
+    "seeds": [
+      0
+    ],
+    "max_steps": 20,
+    "num_dynamic_obstacles": [
+      2
+    ],
+    "sensor_noise": [
+      2.0
+    ],
+    "execution_noise": [
+      0.2
+    ]
+  }
+}

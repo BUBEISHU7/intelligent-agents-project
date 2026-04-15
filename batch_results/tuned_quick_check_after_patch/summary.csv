@@ -1,0 +1,3 @@
+exp_id,algorithm,num_bots,num_dirt,seed,max_steps,num_dynamic_obstacles,sensor_noise,execution_noise,total_steps,completed,runtime_seconds,timestamp,coverage,remaining_dirt,collisions,dynamic_collisions,robot_collisions,total_distance,path_efficiency,performance_score,success
+random_bots1_dirt80_dyn0_snoise0p0_enoise0p0_seed0,random,1,80,0,600,0,0.0,0.0,600,True,0.5571,2026-04-14 19:32:50,0.0,80,1,0,0,2395.21,0.0,-10.395,0
+astar_bots1_dirt80_dyn0_snoise0p0_enoise0p0_seed0,astar,1,80,0,600,0,0.0,0.0,600,True,4.0567,2026-04-14 19:32:55,0.0,80,0,0,0,3876.47,0.0,-9.876,0

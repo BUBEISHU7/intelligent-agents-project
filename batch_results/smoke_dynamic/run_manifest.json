@@ -1,0 +1,29 @@
+{
+  "run_name": "smoke_dynamic",
+  "created_at": "2026-04-14 10:36:30",
+  "out_dir": "C:\\Users\\HP\\Desktop\\intelligent-agents-project\\batch_results\\smoke_dynamic",
+  "grid": {
+    "algorithms": [
+      "astar"
+    ],
+    "num_bots": [
+      1
+    ],
+    "num_dirt": [
+      10
+    ],
+    "seeds": [
+      0
+    ],
+    "max_steps": 5,
+    "num_dynamic_obstacles": [
+      1
+    ],
+    "sensor_noise": [
+      1.0
+    ],
+    "execution_noise": [
+      0.1
+    ]
+  }
+}
