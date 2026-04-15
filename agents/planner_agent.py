@@ -8,6 +8,7 @@ if _PROJECT_ROOT not in sys.path:
     sys.path.insert(0, _PROJECT_ROOT)
 from env.astar import AStarPlanner
 from env.simpleBot2 import Dirt
+from agents.goap_agent import DStarLitePlanner as UnifiedDStarLitePlanner
 
 
 class _DStarLitePlanner:
@@ -379,3 +380,8 @@ class PlannerAgent:
         if isinstance(obs, list):
             return [self._action_for_one(i, obs_i) for i, obs_i in enumerate(obs)]
         return [self._action_for_one(0, obs)]
+
+
+# Keep PlannerAgent on the same D* Lite implementation as GOAPTeamController.
+# This avoids experiment drift caused by multiple in-repo variants.
+_DStarLitePlanner = UnifiedDStarLitePlanner

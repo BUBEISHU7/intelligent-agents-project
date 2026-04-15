@@ -8,6 +8,37 @@ import numpy as np
 from .simpleBot2 import Bot, Brain, Charger, Dirt, Obstacle, WiFiHub
 
 
+class _NullCanvas:
+    """No-op canvas for headless execution."""
+
+    def create_oval(self, *args, **kwargs):
+        return None
+
+    def create_text(self, *args, **kwargs):
+        return None
+
+    def create_polygon(self, *args, **kwargs):
+        return None
+
+    def create_line(self, *args, **kwargs):
+        return None
+
+    def delete(self, *args, **kwargs):
+        return None
+
+    def pack(self, *args, **kwargs):
+        return None
+
+    def bind(self, *args, **kwargs):
+        return None
+
+    def update(self, *args, **kwargs):
+        return None
+
+    def after(self, *args, **kwargs):
+        return None
+
+
 class DynamicObstacle:
     """Simple moving obstacle with bouncing boundary behavior."""
 
@@ -95,18 +126,27 @@ class RobotEnvironment:
         self.static_collision_margin = 8.0
         self.dynamic_collision_margin = 4.0
         self.dynamic_collision_cooldown_steps = 5
+        # Collision response tuning: keep motion continuous and fair across controllers.
+        self.collision_slowdown_steps = 4
+        self.collision_slowdown_factor_static = 0.35
+        self.collision_slowdown_factor_dynamic = 0.25
+        self.collision_theta_jitter_rad = math.radians(18.0)
 
-        self.window = tk.Tk()
-        self.window.resizable(False, False)
-        if not self.render_enabled:
-            self.window.withdraw()
-        self.canvas = tk.Canvas(self.window, width=self.width, height=self.height)
-        self.canvas.pack()
+        self.window = None
+        if self.render_enabled:
+            self.window = tk.Tk()
+            self.window.resizable(False, False)
+            self.canvas = tk.Canvas(self.window, width=self.width, height=self.height)
+            self.canvas.pack()
+        else:
+            self.canvas = _NullCanvas()
 
         self.agents: List[Bot] = []
         self.passive_objects: List[object] = []
         self.dynamic_obstacles: List[DynamicObstacle] = []
         self.shared_map: Dict[str, object] = {}
+        self._shared_map_counts: Dict[str, Dict[Tuple[int, int], int]] = {}
+        self._shared_map_last_seen: Dict[str, Dict[Tuple[int, int], int]] = {}
         self._last_dynamic_grid: set = set()
         self._changed_cells: List[Tuple[int, int, int]] = []
         self.cell_size = self.grid_resolution
@@ -126,6 +166,8 @@ class RobotEnvironment:
         self.robot_collision_count = 0
         self.bot_collision_state = [False for _ in self.agents]
         self.dynamic_collision_cooldown = [0 for _ in self.agents]
+        self.collision_slowdown = [0 for _ in self.agents]
+        self.collision_slowdown_factor = [1.0 for _ in self.agents]
 
     def _random_free_pose(self, margin: float = 80.0) -> Tuple[float, float]:
         for _ in range(200):
@@ -241,6 +283,11 @@ class RobotEnvironment:
     def get_changed_cells(self) -> List[Tuple[int, int, int]]:
         return list(self._changed_cells)
 
+    def consume_changed_cells(self) -> List[Tuple[int, int, int]]:
+        changed = list(self._changed_cells)
+        self._changed_cells = []
+        return changed
+
     def _dynamic_grid_cells(self) -> set:
         occupied = set()
         for obj in self.dynamic_obstacles:
@@ -285,10 +332,12 @@ class RobotEnvironment:
                     nx, ny = math.cos(rr.theta), math.sin(rr.theta)
                 else:
                     nx, ny = (rr.x - obj.centreX) / dist, (rr.y - obj.centreY) / dist
-                # slide out instead of hard rollback to reduce oscillation
+                # Minimal translation to resolve penetration; avoid hard "teleport+big turn".
                 rr.x = obj.centreX + nx * obj_radius
                 rr.y = obj.centreY + ny * obj_radius
-                rr.theta = (rr.theta + random.uniform(math.pi / 2.0, math.pi)) % (2.0 * math.pi)
+                rr.theta = (rr.theta + random.uniform(-self.collision_theta_jitter_rad, self.collision_theta_jitter_rad)) % (2.0 * math.pi)
+                self.collision_slowdown[i] = self.collision_slowdown_steps
+                self.collision_slowdown_factor[i] = self.collision_slowdown_factor_static
                 collided = True
                 break
 
@@ -302,7 +351,9 @@ class RobotEnvironment:
                     nx, ny = (rr.x - obj.centreX) / dist, (rr.y - obj.centreY) / dist
                 rr.x = obj.centreX + nx * obj_radius
                 rr.y = obj.centreY + ny * obj_radius
-                rr.theta = (rr.theta + random.uniform(math.pi / 2.0, math.pi)) % (2.0 * math.pi)
+                rr.theta = (rr.theta + random.uniform(-self.collision_theta_jitter_rad, self.collision_theta_jitter_rad)) % (2.0 * math.pi)
+                self.collision_slowdown[i] = self.collision_slowdown_steps
+                self.collision_slowdown_factor[i] = self.collision_slowdown_factor_dynamic
                 collided = True
                 if self.dynamic_collision_cooldown[i] <= 0:
                     self.dynamic_collision_count += 1
@@ -350,9 +401,31 @@ class RobotEnvironment:
         for item in sensed["dirt"]:
             dirt_cells.add(self.world_to_grid((item["x"], item["y"])))
 
-        self.shared_map["obstacles"].update(obstacle_cells)
-        self.shared_map["dynamic_obstacles"].update(dynamic_cells)
-        self.shared_map["dirt"].update(dirt_cells)
+        step = int(getattr(self, "total_steps", 0))
+        confirm_thresh = int(self.noise_config.get("shared_map_confirm_thresh", 2))
+        ttl_obstacles = int(self.noise_config.get("shared_map_ttl_obstacles", 200))
+        ttl_dynamic = int(self.noise_config.get("shared_map_ttl_dynamic", 40))
+        ttl_dirt = int(self.noise_config.get("shared_map_ttl_dirt", 120))
+
+        def ingest(key: str, cells: set, ttl: int):
+            counts = self._shared_map_counts.setdefault(key, {})
+            last_seen = self._shared_map_last_seen.setdefault(key, {})
+            for c in cells:
+                counts[c] = int(counts.get(c, 0)) + 1
+                last_seen[c] = step
+                if counts[c] >= confirm_thresh:
+                    self.shared_map[key].add(c)
+            # decay
+            to_drop = [c for c, t in last_seen.items() if (step - int(t)) > ttl]
+            for c in to_drop:
+                last_seen.pop(c, None)
+                counts.pop(c, None)
+                if c in self.shared_map[key]:
+                    self.shared_map[key].discard(c)
+
+        ingest("obstacles", obstacle_cells, ttl_obstacles)
+        ingest("dynamic_obstacles", dynamic_cells, ttl_dynamic)
+        ingest("dirt", dirt_cells, ttl_dirt)
         self.shared_map["robot_updates"][robot_idx] = {
             "position": (self.agents[robot_idx].x, self.agents[robot_idx].y),
             "obstacles": sorted(obstacle_cells),
@@ -369,6 +442,8 @@ class RobotEnvironment:
             "robot_updates": {},
             "grid_resolution": self.grid_resolution,
         }
+        self._shared_map_counts = {"obstacles": {}, "dynamic_obstacles": {}, "dirt": {}}
+        self._shared_map_last_seen = {"obstacles": {}, "dynamic_obstacles": {}, "dirt": {}}
 
     def _noisy_detection(self, obj, miss_rate: float, std: float, bias_x: float, bias_y: float):
         if random.random() < miss_rate:
@@ -448,6 +523,7 @@ class RobotEnvironment:
         self.total_steps += 1
         for i in range(len(self.dynamic_collision_cooldown)):
             self.dynamic_collision_cooldown[i] = max(0, self.dynamic_collision_cooldown[i] - 1)
+            self.collision_slowdown[i] = max(0, self.collision_slowdown[i] - 1)
         self._update_dynamic_obstacles(1.0)
 
         use_external = actions is not None and len(actions) == len(self.agents)
@@ -461,6 +537,12 @@ class RobotEnvironment:
             else:
                 rr.thinkAndAct(self.agents, self.passive_objects)
                 rr.sl, rr.sr = self._apply_execution_noise((rr.sl, rr.sr))
+
+            # Apply short post-collision slowdown to prevent repeated impacts.
+            if self.collision_slowdown[i] > 0:
+                f = float(self.collision_slowdown_factor[i])
+                rr.sl *= f
+                rr.sr *= f
 
             rr.update(self.canvas, self.passive_objects, 1.0)
             self.passive_objects = rr.collectDirt(self.canvas, self.passive_objects)
@@ -487,8 +569,6 @@ class RobotEnvironment:
         if self.render_enabled:
             self.canvas.update()
             self.canvas.after(20)
-        else:
-            self.window.update_idletasks()
 
         done = metrics["success"] or (self.total_steps >= self.max_steps)
         return obs, reward, done, metrics
@@ -580,4 +660,6 @@ class RobotEnvironment:
             self.canvas.update()
 
     def close(self):
-        self.window.destroy()
+        if self.window is not None:
+            self.window.destroy()
+            self.window = None

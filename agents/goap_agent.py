@@ -282,6 +282,12 @@ class GOAPTeamController:
             "path_deviation_replan_dist": 55.0,
             "avoidance_mode": "ttc",  # 'ttc' | 'orca'
             "orca_time_horizon": 4.0,
+            # Control robustness: avoid long in-place spinning
+            "turn_limit_ratio": 0.85,  # clamp |turn| <= ratio * forward
+            "spin_angle_threshold": 1.15,  # rad
+            "spin_steps_trigger": 10,
+            "spin_escape_steps": 6,
+            "spin_escape_forward": 2.5,
         }
         if config:
             self.config.update(config)
@@ -316,6 +322,7 @@ class GOAPTeamController:
                 "stuck_steps": 0,
                 "escape_steps": 0,
                 "escape_sign": 1.0,
+                "spin_steps": 0,
             }
             self.state_by_robot[robot_idx] = state
         return state
@@ -430,7 +437,7 @@ class GOAPTeamController:
             return planner.get_path()
 
         planner.grid = grid
-        return planner.replan(start_pos, self.env.get_changed_cells())
+        return planner.replan(start_pos, self.env.consume_changed_cells())
 
     def _follow_path(
         self,
@@ -491,6 +498,13 @@ class GOAPTeamController:
         elif mag > self.config["waypoint_reach_dist"]:
             forward = max(forward, self.config["min_speed"] * 0.5)
         turn = self.config["turn_gain"] * angle_diff
+        # Clamp turning to avoid in-place spinning dominating motion.
+        limit_ratio = float(self.config.get("turn_limit_ratio", 0.85))
+        turn_limit = max(0.0, forward * limit_ratio)
+        if turn > turn_limit:
+            turn = turn_limit
+        elif turn < -turn_limit:
+            turn = -turn_limit
         left = max(-self.config["max_speed"], min(self.config["max_speed"], forward - turn))
         right = max(-self.config["max_speed"], min(self.config["max_speed"], forward + turn))
         return (left, right)
@@ -764,6 +778,19 @@ class GOAPTeamController:
                 obs_one.get("detected_dynamic_obstacles", []),
                 state,
             )
+            # Detect prolonged spinning and force a short forward-biased escape.
+            if action[0] * action[1] < 0:
+                state["spin_steps"] = int(state.get("spin_steps", 0)) + 1
+            else:
+                state["spin_steps"] = 0
+            if int(state.get("spin_steps", 0)) >= int(self.config.get("spin_steps_trigger", 10)):
+                state["spin_steps"] = 0
+                state["escape_steps"] = int(self.config.get("spin_escape_steps", 6))
+                s = 1.0 if (robot_idx % 2 == 0) else -1.0
+                state["escape_sign"] = s
+                fwd = float(self.config.get("spin_escape_forward", 2.5))
+                actions.append((fwd, fwd))
+                continue
             actions.append(action)
 
         return self._apply_team_deconfliction(obs, actions)

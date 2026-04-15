@@ -7,6 +7,7 @@ import os
 import random
 import sys
 import time
+import hashlib
 from dataclasses import dataclass, asdict
 from typing import Dict, List, Optional, Sequence, Tuple
 
@@ -71,13 +72,16 @@ class SimplePlannerController:
         self.turn_gain = 2.6
         self.waypoint_reach = 26.0
         self.replan_interval = 6
-        self.stick_steps = 30
+        self.clean_trigger_dist = 30.0
+        self.clean_hold_steps = 3
         self.current_target: Optional[Tuple[float, float]] = None
         self.path: List[Tuple[float, float]] = []
         self.steps_since_replan = 0
-        self.steps_on_target = 0
+        self.clean_hold = 0
         self.prev_pos: Optional[Tuple[float, float]] = None
         self.stuck_steps = 0
+        self.last_target_dist: float = float("inf")
+        self.no_progress_steps = 0
 
     def _collect_dirt(self) -> List[Tuple[float, float]]:
         out: List[Tuple[float, float]] = []
@@ -89,7 +93,20 @@ class SimplePlannerController:
     def _pick_target(self, pos: Tuple[float, float], dirt: Sequence[Tuple[float, float]]) -> Optional[Tuple[float, float]]:
         if not dirt:
             return None
-        return min(dirt, key=lambda d: math.hypot(pos[0] - d[0], pos[1] - d[1]))
+        best = None
+        best_score = float("inf")
+        for d in dirt:
+            dist = math.hypot(pos[0] - d[0], pos[1] - d[1])
+            # Prefer dirt in local clusters to improve short-horizon cleaning yield.
+            local_density = 0
+            for q in dirt:
+                if math.hypot(d[0] - q[0], d[1] - q[1]) <= 110.0:
+                    local_density += 1
+            score = dist - 16.0 * local_density
+            if score < best_score:
+                best_score = score
+                best = d
+        return best
 
     def _plan_path(self, start: Tuple[float, float], target: Optional[Tuple[float, float]]) -> List[Tuple[float, float]]:
         if target is None:
@@ -132,11 +149,30 @@ class SimplePlannerController:
         if self.current_target is not None:
             near_target = math.hypot(pos[0] - self.current_target[0], pos[1] - self.current_target[1]) < 35.0
             target_exists = any(math.hypot(d[0] - self.current_target[0], d[1] - self.current_target[1]) < 8.0 for d in dirt)
-            self.steps_on_target = self.steps_on_target + 1 if near_target else 0
-            if (not target_exists) or self.steps_on_target > self.stick_steps:
+            if not target_exists:
                 self.current_target = None
                 self.path = []
-                self.steps_on_target = 0
+                self.clean_hold = 0
+                self.last_target_dist = float("inf")
+                self.no_progress_steps = 0
+            else:
+                dist_t = math.hypot(pos[0] - self.current_target[0], pos[1] - self.current_target[1])
+                if dist_t <= self.clean_trigger_dist:
+                    self.clean_hold += 1
+                else:
+                    self.clean_hold = 0
+                if dist_t > self.last_target_dist - 2.0:
+                    self.no_progress_steps += 1
+                else:
+                    self.no_progress_steps = 0
+                self.last_target_dist = dist_t
+                if near_target and self.no_progress_steps > 24:
+                    # If we are close but not getting cleaner, pick another target.
+                    self.current_target = None
+                    self.path = []
+                    self.clean_hold = 0
+                    self.last_target_dist = float("inf")
+                    self.no_progress_steps = 0
 
         if self.current_target is None:
             self.current_target = self._pick_target(pos, dirt)
@@ -150,6 +186,10 @@ class SimplePlannerController:
         if self.stuck_steps >= 10:
             self.stuck_steps = 0
             return [(-3.0, 2.0)]
+
+        if self.current_target is not None and self.clean_hold > 0 and self.clean_hold <= self.clean_hold_steps:
+            # Pause briefly at target to guarantee dirt collection trigger.
+            return [(0.0, 0.0)]
 
         if not self.path:
             return [(0.0, 0.0)]
@@ -282,6 +322,30 @@ def _perm_pvalue(a: Sequence[float], b: Sequence[float], n_perm: int = 2000) -> 
     return (count + 1) / (n_perm + 1)
 
 
+def _stable_seed(base_seed: int, parts: Sequence[object]) -> int:
+    h = hashlib.blake2b(digest_size=8)
+    h.update(str(int(base_seed)).encode("utf-8"))
+    for p in parts:
+        h.update(b"|")
+        h.update(str(p).encode("utf-8"))
+    return int.from_bytes(h.digest(), "little", signed=False) % (2**31 - 1)
+
+
+def _holm_bonferroni(pvals: Sequence[float]) -> List[float]:
+    m = len(pvals)
+    order = sorted(range(m), key=lambda i: float(pvals[i]))
+    adj = [0.0] * m
+    prev = 0.0
+    for rank, i in enumerate(order):
+        p = float(pvals[i])
+        val = (m - rank) * p
+        if val < prev:
+            val = prev
+        prev = val
+        adj[i] = min(1.0, val)
+    return adj
+
+
 def _write_plots(df: pd.DataFrame, out_dir: str) -> None:
     plots_dir = os.path.join(out_dir, "plots")
     os.makedirs(plots_dir, exist_ok=True)
@@ -401,7 +465,15 @@ def _write_plots(df: pd.DataFrame, out_dir: str) -> None:
         plt.close(fig)
 
 
-def run_full_matrix(output_dir: str, reps: int, fast: bool = False, fast_reps: int = 3, p2_controller: str = "simple") -> str:
+def run_full_matrix(
+    output_dir: str,
+    reps: int,
+    fast: bool = False,
+    fast_reps: int = 3,
+    p2_controller: str = "simple",
+    base_seed: int = 12345,
+    n_perm: int = 10000,
+) -> str:
     os.makedirs(output_dir, exist_ok=True)
     reps = max(1, fast_reps) if fast else reps
     max_steps = 250 if fast else 1200
@@ -411,6 +483,8 @@ def run_full_matrix(output_dir: str, reps: int, fast: bool = False, fast_reps: i
         "reps": int(reps),
         "max_steps": int(max_steps),
         "p2_controller": str(p2_controller),
+        "base_seed": int(base_seed),
+        "n_perm": int(n_perm),
         "phases": {
             "P2_single_agent": {
                 "num_bots": 1,
@@ -430,7 +504,7 @@ def run_full_matrix(output_dir: str, reps: int, fast: bool = False, fast_reps: i
     p2_reps = reps if fast else max(10, reps)
     for planner in ["planning", "reactive"]:
         for rep in range(p2_reps):
-            seed = 20000 + rep
+            seed = _stable_seed(base_seed, ("P2_single_agent", planner, "none", 1, "0", rep))
             metric = run_episode(
                 planner_type=planner,
                 coordination="none",
@@ -451,7 +525,7 @@ def run_full_matrix(output_dir: str, reps: int, fast: bool = False, fast_reps: i
             if bots == 1 and coord != "none":
                 continue
             for rep in range(reps):
-                seed = 30000 + bots * 100 + rep
+                seed = _stable_seed(base_seed, ("P3_multi_agent", "planning", coord, bots, "low", rep))
                 metric = run_episode(
                     planner_type="planning",
                     coordination=coord,
@@ -470,7 +544,7 @@ def run_full_matrix(output_dir: str, reps: int, fast: bool = False, fast_reps: i
     for planner in ["planning", "reactive"]:
         for nl in ["0", "low", "mid", "high"]:
             for rep in range(reps):
-                seed = 40000 + rep + (0 if planner == "planning" else 5000)
+                seed = _stable_seed(base_seed, ("P4_noise_robustness", planner, "none", 3, nl, rep))
                 metric = run_episode(
                     planner_type=planner,
                     coordination="none",
@@ -493,7 +567,7 @@ def run_full_matrix(output_dir: str, reps: int, fast: bool = False, fast_reps: i
                     if bots == 1 and coord != "none":
                         continue
                     for rep in range(reps):
-                        seed = 50000 + rep + bots * 1000 + (0 if planner == "planning" else 10000)
+                        seed = _stable_seed(base_seed, ("P5_full_matrix", planner, coord, bots, nl, rep))
                         metric = run_episode(
                             planner_type=planner,
                             coordination=coord,
@@ -547,8 +621,10 @@ def run_full_matrix(output_dir: str, reps: int, fast: bool = False, fast_reps: i
         gr = g[g["planner_type"] == "reactive"]
         if len(gp) < 3 or len(gr) < 3:
             continue
-        p_cov = _perm_pvalue(gp["coverage"].values, gr["coverage"].values)
-        p_eff = _perm_pvalue(gp["path_efficiency"].values, gr["path_efficiency"].values)
+        p_cov = _perm_pvalue(gp["coverage"].values, gr["coverage"].values, n_perm=n_perm)
+        p_eff = _perm_pvalue(gp["path_efficiency"].values, gr["path_efficiency"].values, n_perm=n_perm)
+        cov_diff = float(gp["coverage"].mean() - gr["coverage"].mean())
+        eff_diff = float(gp["path_efficiency"].mean() - gr["path_efficiency"].mean())
         tests.append(
             {
                 "phase": key[0],
@@ -561,11 +637,38 @@ def run_full_matrix(output_dir: str, reps: int, fast: bool = False, fast_reps: i
                 "reactive_cov_mean": float(gr["coverage"].mean()),
                 "planning_eff_mean": float(gp["path_efficiency"].mean()),
                 "reactive_eff_mean": float(gr["path_efficiency"].mean()),
+                "coverage_mean_diff": cov_diff,
+                "path_eff_mean_diff": eff_diff,
                 "p_perm_coverage": p_cov,
                 "p_perm_path_eff": p_eff,
             }
         )
-    pd.DataFrame(tests).to_csv(os.path.join(output_dir, "significance_tests.csv"), index=False)
+    cols = [
+        "phase",
+        "num_bots",
+        "noise_level",
+        "coordination",
+        "n_planning",
+        "n_reactive",
+        "planning_cov_mean",
+        "reactive_cov_mean",
+        "planning_eff_mean",
+        "reactive_eff_mean",
+        "coverage_mean_diff",
+        "path_eff_mean_diff",
+        "p_perm_coverage",
+        "p_perm_path_eff",
+        "p_holm_coverage",
+        "p_holm_path_eff",
+    ]
+    tests_df = pd.DataFrame(tests)
+    if tests_df.empty:
+        tests_df = pd.DataFrame(columns=cols)
+    else:
+        tests_df["p_holm_coverage"] = _holm_bonferroni(tests_df["p_perm_coverage"].fillna(1.0).tolist())
+        tests_df["p_holm_path_eff"] = _holm_bonferroni(tests_df["p_perm_path_eff"].fillna(1.0).tolist())
+        tests_df = tests_df.reindex(columns=cols)
+    tests_df.to_csv(os.path.join(output_dir, "significance_tests.csv"), index=False)
 
     _write_plots(df, output_dir)
     return output_dir
@@ -578,6 +681,8 @@ def main() -> None:
     ap.add_argument("--fast", action="store_true")
     ap.add_argument("--fast-reps", type=int, default=3, help="Runs per condition when --fast is enabled.")
     ap.add_argument("--p2-controller", choices=["simple", "goap"], default="simple")
+    ap.add_argument("--base-seed", type=int, default=12345, help="Base seed for deterministic per-condition seed derivation.")
+    ap.add_argument("--n-perm", type=int, default=10000, help="Permutation test iterations.")
     args = ap.parse_args()
     out = run_full_matrix(
         args.output_dir,
@@ -585,6 +690,8 @@ def main() -> None:
         fast=args.fast,
         fast_reps=args.fast_reps,
         p2_controller=args.p2_controller,
+        base_seed=args.base_seed,
+        n_perm=args.n_perm,
     )
     print(f"Done. Results saved to: {out}")
 
