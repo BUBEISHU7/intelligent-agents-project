@@ -1,0 +1,55 @@
+{
+  "fast": true,
+  "reps": 3,
+  "max_steps": 250,
+  "p2_controller": "simple",
+  "base_seed": 12345,
+  "n_perm": 10000,
+  "phases": {
+    "P2_single_agent": {
+      "num_bots": 1,
+      "noise_level": "0",
+      "num_dirt": 60,
+      "num_dynamic_obstacles": 0
+    },
+    "P3_multi_agent": {
+      "num_bots": [
+        1,
+        2,
+        3,
+        5
+      ],
+      "coordination": [
+        "none",
+        "basic",
+        "enhanced"
+      ]
+    },
+    "P4_noise_robustness": {
+      "num_bots": 3,
+      "noise_level": [
+        "0",
+        "low",
+        "mid",
+        "high"
+      ]
+    },
+    "P5_full_matrix": {
+      "num_bots": [
+        1,
+        3,
+        5
+      ],
+      "coordination": [
+        "none",
+        "basic"
+      ],
+      "noise_level": [
+        "0",
+        "low",
+        "mid",
+        "high"
+      ]
+    }
+  }
+}
