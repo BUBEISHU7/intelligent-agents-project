@@ -275,5 +275,6 @@ def run_batch(output_dir=None, repetitions=30, max_total_runs=30):
 
 
 if __name__ == "__main__":
-    # For quick demo: total 9 runs (2/4/6 x 3 strategies once each).
-    run_batch(repetitions=30, max_total_runs=9)
+    # Quick demo: 9 runs = 3 strategies × 3 robot counts (one rep each).
+    # Full study per design: use repetitions=30 and max_total_runs=270 (or omit max_total_runs).
+    run_batch(repetitions=1, max_total_runs=9)
