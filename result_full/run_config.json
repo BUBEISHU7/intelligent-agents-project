@@ -1,7 +1,7 @@
 {
-  "fast": true,
-  "reps": 3,
-  "max_steps": 250,
+  "fast": false,
+  "reps": 30,
+  "max_steps": 1200,
   "p2_controller": "simple",
   "base_seed": 12345,
   "n_perm": 10000,

@@ -11,7 +11,7 @@ from env.simpleBot2 import Dirt
 from agents.goap_agent import DStarLitePlanner as UnifiedDStarLitePlanner
 
 
-class _DStarLitePlanner:
+class _LegacyDStarLitePlanner:
     """
     纯 D* Lite（Koenig & Likhachev, 2002）的一个最小可用实现。
     目的：替代项目内 env/dstarlite.py 可能导致的卡死/未响应问题（不修改 env 文件）。
@@ -382,6 +382,6 @@ class PlannerAgent:
         return [self._action_for_one(0, obs)]
 
 
-# Keep PlannerAgent on the same D* Lite implementation as GOAPTeamController.
-# This avoids experiment drift caused by multiple in-repo variants.
+# Use the unified D* Lite implementation shared with GOAPTeamController.
+# The legacy in-file implementation above is intentionally unused.
 _DStarLitePlanner = UnifiedDStarLitePlanner

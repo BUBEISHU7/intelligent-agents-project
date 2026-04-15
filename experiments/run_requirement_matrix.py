@@ -73,7 +73,8 @@ class SimplePlannerController:
         self.waypoint_reach = 26.0
         self.replan_interval = 6
         self.clean_trigger_dist = 30.0
-        self.clean_hold_steps = 3
+        # Do not spend multiple idle steps at each target; keep sweeping motion continuous.
+        self.clean_hold_steps = 0
         self.current_target: Optional[Tuple[float, float]] = None
         self.path: List[Tuple[float, float]] = []
         self.steps_since_replan = 0
@@ -102,7 +103,8 @@ class SimplePlannerController:
             for q in dirt:
                 if math.hypot(d[0] - q[0], d[1] - q[1]) <= 110.0:
                     local_density += 1
-            score = dist - 16.0 * local_density
+            # Reduce over-bias to dense local clusters and keep some incentive to expand outward.
+            score = 0.82 * dist - 8.0 * local_density
             if score < best_score:
                 best_score = score
                 best = d
@@ -179,7 +181,8 @@ class SimplePlannerController:
             self.path = []
 
         self.steps_since_replan += 1
-        if self.steps_since_replan >= self.replan_interval or not self.path or bool(self.env.get_changed_cells()):
+        changed_cells = self.env.consume_changed_cells() if hasattr(self.env, "consume_changed_cells") else self.env.get_changed_cells()
+        if self.steps_since_replan >= self.replan_interval or not self.path or bool(changed_cells):
             self.path = self._plan_path(pos, self.current_target)
             self.steps_since_replan = 0
 
@@ -221,18 +224,18 @@ def _make_controller(kind: str, env: RobotEnvironment, coordination: str, phase:
             ctrl.config["avoidance_mode"] = "ttc"
         elif coordination == "basic":
             ctrl.config["partition_cleaning"] = True
-            ctrl.config["partition_overlap"] = 30.0
-            ctrl.config["yield_speed_scale"] = 0.55
-            ctrl.config["team_deconflict_dist"] = 85.0
+            ctrl.config["partition_overlap"] = 60.0
+            ctrl.config["yield_speed_scale"] = 0.75
+            ctrl.config["team_deconflict_dist"] = 65.0
             ctrl.config["avoidance_mode"] = "ttc"
         elif coordination == "enhanced":
             ctrl.config["partition_cleaning"] = True
-            ctrl.config["partition_overlap"] = 80.0
-            ctrl.config["yield_speed_scale"] = 0.45
-            ctrl.config["team_deconflict_dist"] = 95.0
+            ctrl.config["partition_overlap"] = 90.0
+            ctrl.config["yield_speed_scale"] = 0.72
+            ctrl.config["team_deconflict_dist"] = 70.0
             ctrl.config["avoidance_mode"] = "orca"
-            ctrl.config["auction_interval"] = 4
-            ctrl.config["replan_interval"] = 8
+            ctrl.config["auction_interval"] = 10
+            ctrl.config["replan_interval"] = 10
         else:
             ctrl.config["avoidance_mode"] = "orca"
         return ctrl
@@ -476,7 +479,8 @@ def run_full_matrix(
 ) -> str:
     os.makedirs(output_dir, exist_ok=True)
     reps = max(1, fast_reps) if fast else reps
-    max_steps = 250 if fast else 1200
+    # Always use long-horizon episodes so coverage reflects sustained cleaning, not a short budget.
+    max_steps = 1200
     rows: List[RunRow] = []
     run_config = {
         "fast": bool(fast),

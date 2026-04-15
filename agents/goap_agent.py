@@ -288,6 +288,9 @@ class GOAPTeamController:
             "spin_steps_trigger": 10,
             "spin_escape_steps": 6,
             "spin_escape_forward": 2.5,
+            # Exploration fallback when no auction target is assigned.
+            "explore_grid_size": 140.0,
+            "explore_min_hop": 110.0,
         }
         if config:
             self.config.update(config)
@@ -306,6 +309,8 @@ class GOAPTeamController:
             ]
         )
         self.state_by_robot: Dict[int, Dict[str, object]] = {}
+        self._cached_assignments: Dict[int, Optional[Tuple[float, float]]] = {}
+        self._last_auction_step: int = -10**9
 
     def _get_state(self, robot_idx: int) -> Dict[str, object]:
         state = self.state_by_robot.get(robot_idx)
@@ -323,9 +328,57 @@ class GOAPTeamController:
                 "escape_steps": 0,
                 "escape_sign": 1.0,
                 "spin_steps": 0,
+                "explore_target": None,
             }
             self.state_by_robot[robot_idx] = state
         return state
+
+    def _sample_explore_target(self, robot_idx: int, obs_one: Dict[str, object]) -> Tuple[float, float]:
+        width = float(getattr(self.env, "width", 1000.0))
+        height = float(getattr(self.env, "height", 700.0))
+        grid = float(self.config.get("explore_grid_size", 140.0))
+        min_hop = float(self.config.get("explore_min_hop", 110.0))
+        cur = (float(obs_one["x"]), float(obs_one["y"]))
+        n = max(1, len(getattr(self.env, "agents", [])))
+        partition_mode = bool(self.config.get("partition_cleaning", True)) and n > 1
+
+        # Prefer low-visit cells in local partition to avoid full-stop waiting.
+        visit_counts: Dict[Tuple[int, int], int] = {}
+        for rr in getattr(self.env, "agents", []):
+            cell = (int(float(rr.x) // grid), int(float(rr.y) // grid))
+            visit_counts[cell] = visit_counts.get(cell, 0) + 1
+
+        nx = max(2, int(width // grid))
+        ny = max(2, int(height // grid))
+        stripe = width / n
+        left = robot_idx * stripe
+        right = (robot_idx + 1) * stripe
+        candidates: List[Tuple[int, int, float]] = []
+        for gx in range(nx):
+            x = min(width - 20.0, (gx + 0.5) * grid)
+            if partition_mode and not (left - 30.0 <= x <= right + 30.0):
+                continue
+            for gy in range(ny):
+                y = min(height - 20.0, (gy + 0.5) * grid)
+                dist = math.hypot(x - cur[0], y - cur[1])
+                if dist < min_hop:
+                    continue
+                visits = visit_counts.get((gx, gy), 0)
+                score = visits * 1000.0 + dist
+                candidates.append((gx, gy, score))
+
+        if not candidates:
+            return (
+                max(20.0, min(width - 20.0, cur[0] + random.uniform(-180.0, 180.0))),
+                max(20.0, min(height - 20.0, cur[1] + random.uniform(-180.0, 180.0))),
+            )
+
+        candidates.sort(key=lambda t: t[2])
+        gx, gy, _ = random.choice(candidates[: min(6, len(candidates))])
+        return (
+            min(width - 20.0, (gx + 0.5) * grid),
+            min(height - 20.0, (gy + 0.5) * grid),
+        )
 
     def _goap_plan(self, predicates: Dict[str, bool], goals: Dict[str, bool]) -> List[str]:
         start = frozenset([k for k, v in predicates.items() if v])
@@ -403,6 +456,23 @@ class GOAPTeamController:
         for idx in range(len(obs)):
             assignments.setdefault(idx, None)
         return assignments
+
+    def _is_assignment_stale(
+        self, obs: Sequence[Dict[str, object]], assignments: Dict[int, Optional[Tuple[float, float]]]
+    ) -> bool:
+        if len(assignments) != len(obs):
+            return True
+        current_targets = self._collect_candidate_targets()
+        if not current_targets:
+            return any(v is not None for v in assignments.values())
+        for idx in range(len(obs)):
+            target = assignments.get(idx)
+            if target is None:
+                continue
+            # Re-auction if assigned dirt no longer exists.
+            if not any(math.hypot(target[0] - d[0], target[1] - d[1]) < 8.0 for d in current_targets):
+                return True
+        return False
 
     def _target_density(self, center: Tuple[float, float], all_targets: Sequence[Tuple[float, float]]) -> int:
         radius = float(self.config.get("target_cluster_radius", 120.0))
@@ -667,7 +737,15 @@ class GOAPTeamController:
         return min(candidates)
 
     def compute_actions(self, obs: Sequence[Dict[str, object]]) -> List[Tuple[float, float]]:
-        assignments = self._auction_assignments(obs)
+        step = int(getattr(self.env, "total_steps", 0))
+        interval = max(1, int(self.config.get("auction_interval", 8)))
+        should_refresh = (step - self._last_auction_step) >= interval or not self._cached_assignments
+        if (not should_refresh) and self._is_assignment_stale(obs, self._cached_assignments):
+            should_refresh = True
+        if should_refresh:
+            self._cached_assignments = self._auction_assignments(obs)
+            self._last_auction_step = step
+        assignments = self._cached_assignments
         actions: List[Tuple[float, float]] = []
 
         for robot_idx, obs_one in enumerate(obs):
@@ -720,6 +798,22 @@ class GOAPTeamController:
             else:
                 goal_kind = "wait"
                 target = None
+
+            # Do not idle forever when auction yields no target; move to explore frontier-like cells.
+            if goal_kind == "wait" and assigned_target is None and not force_charge:
+                explore_target = state.get("explore_target")
+                if explore_target is None:
+                    explore_target = self._sample_explore_target(robot_idx, obs_one)
+                    state["explore_target"] = explore_target
+                else:
+                    dist_e = math.hypot(float(obs_one["x"]) - explore_target[0], float(obs_one["y"]) - explore_target[1])
+                    if dist_e < float(self.config.get("waypoint_reach_dist", 24.0)) * 1.5:
+                        explore_target = self._sample_explore_target(robot_idx, obs_one)
+                        state["explore_target"] = explore_target
+                goal_kind = "explore"
+                target = explore_target
+            elif assigned_target is not None:
+                state["explore_target"] = None
 
             if goal_kind == "charge" and float(obs_one["battery"]) >= self.config["battery_resume_threshold"]:
                 goal_kind = "clean"
